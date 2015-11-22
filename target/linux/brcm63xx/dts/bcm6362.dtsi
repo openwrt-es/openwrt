@@ -6,6 +6,7 @@
 	aliases {
 		gpio0 = &gpio0;
 		gpio1 = &gpio1;
+		leds0 = &leds0;
 	};
 
 	cpus {
@@ -80,6 +81,15 @@
 
 			gpio-controller;
 			#gpio-cells = <2>;
+		};
+
+		leds0: led-controller@10001904 {
+			compatible = "brcm,bcm6328-leds";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x10001900 0x24>;
+
+			status = "disabled";
 		};
 	};
 };

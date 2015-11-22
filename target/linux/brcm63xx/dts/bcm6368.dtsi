@@ -7,6 +7,7 @@
 		pflash = &pflash;
 		gpio0 = &gpio0;
 		gpio1 = &gpio1;
+		leds0 = &leds0;
 	};
 
 	cpus {
@@ -92,6 +93,15 @@
 
 			gpio-controller;
 			#gpio-cells = <2>;
+		};
+
+		leds0: led-controller@100000d0 {
+			compatible = "brcm,bcm6358-leds";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x100000d0 0x8>;
+
+			status = "disabled";
 		};
 	};
 
