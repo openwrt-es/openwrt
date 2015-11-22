@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2013 OpenWrt.org
+# Copyright (C) 2013-2015 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -7,7 +7,7 @@
 
 define Profile/Generic
   NAME:=Broadcom SoC, BCM43xx WiFi (b43, brcmfmac, default)
-  PACKAGES:=kmod-b43 kmod-brcmfmac
+  PACKAGES:=kmod-b43 kmod-brcmfmac wpad-mini
 endef
 
 define Profile/Generic/Description
@@ -16,4 +16,3 @@ define Profile/Generic/Description
 endef
 
 $(eval $(call Profile,Generic))
-

@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2013 OpenWrt.org
+# Copyright (C) 2013-2015 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -23,7 +23,7 @@ endef
 
 KERNELNAME:=zImage dtbs
 
-DEFAULT_PACKAGES += swconfig wpad-mini nvram otrx \
+DEFAULT_PACKAGES += swconfig nvram otrx \
 	kmod-gpio-button-hotplug \
 	kmod-leds-gpio kmod-ledtrig-default-on kmod-ledtrig-timer
 
