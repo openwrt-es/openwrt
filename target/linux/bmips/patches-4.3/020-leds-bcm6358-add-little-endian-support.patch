@@ -1,0 +1,39 @@
+From 9cadc2eff18c892bf8d11ac8115cbc1aa1172175 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=C3=81lvaro=20Fern=C3=A1ndez=20Rojas?= <noltari@gmail.com>
+Date: Tue, 15 Dec 2015 21:03:50 +0100
+Subject: [PATCH] leds: bcm6358: add little endian support
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This adds little endian support while keeping big endian support.
+
+Signed-off-by: Álvaro Fernández Rojas <noltari@gmail.com>
+Signed-off-by: Jacek Anaszewski <j.anaszewski@samsung.com>
+---
+ drivers/leds/leds-bcm6358.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+--- a/drivers/leds/leds-bcm6358.c
++++ b/drivers/leds/leds-bcm6358.c
+@@ -49,12 +49,20 @@ struct bcm6358_led {
+ 
+ static void bcm6358_led_write(void __iomem *reg, unsigned long data)
+ {
++#ifdef CONFIG_CPU_BIG_ENDIAN
+ 	iowrite32be(data, reg);
++#else
++	writel(data, reg);
++#endif
+ }
+ 
+ static unsigned long bcm6358_led_read(void __iomem *reg)
+ {
++#ifdef CONFIG_CPU_BIG_ENDIAN
+ 	return ioread32be(reg);
++#else
++	return readl(reg);
++#endif
+ }
+ 
+ static unsigned long bcm6358_led_busy(void __iomem *mem)

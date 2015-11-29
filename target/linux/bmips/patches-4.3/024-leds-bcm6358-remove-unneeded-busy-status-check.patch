@@ -1,0 +1,27 @@
+From 4f6fbfc234c935258c99bac6aeb3b8985db37fc7 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=C3=81lvaro=20Fern=C3=A1ndez=20Rojas?= <noltari@gmail.com>
+Date: Wed, 16 Dec 2015 19:52:26 +0100
+Subject: [PATCH] leds: bcm6358: remove unneeded busy status check
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The busy status checking isn't needed while reading initial LED status.
+
+Signed-off-by: Álvaro Fernández Rojas <noltari@gmail.com>
+---
+ drivers/leds/leds-bcm6358.c | 3 ---
+ 1 file changed, 3 deletions(-)
+
+--- a/drivers/leds/leds-bcm6358.c
++++ b/drivers/leds/leds-bcm6358.c
+@@ -123,9 +123,6 @@ static int bcm6358_led(struct device *de
+ 			led->cdev.brightness = LED_FULL;
+ 		} else if (!strcmp(state, "keep")) {
+ 			unsigned long val;
+-
+-			bcm6358_led_busy(led->mem);
+-
+ 			val = bcm6358_led_read(led->mem + BCM6358_REG_MODE);
+ 			val &= BIT(led->pin);
+ 			if ((led->active_low && !val) ||

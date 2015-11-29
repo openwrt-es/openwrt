@@ -1,0 +1,49 @@
+From 6798b85bb625a0c8dbf12614083f1145ed7ddfd5 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=C3=81lvaro=20Fern=C3=A1ndez=20Rojas?= <noltari@gmail.com>
+Date: Tue, 15 Dec 2015 21:03:51 +0100
+Subject: [PATCH] leds: bcm6328: simplify duplicated unlock in
+ bcm6328_blink_set
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Instead of duplicating the unlock we can store the return value and use a
+single unlock before returning that value, which simplifies the code.
+
+Signed-off-by: Álvaro Fernández Rojas <noltari@gmail.com>
+Signed-off-by: Jacek Anaszewski <j.anaszewski@samsung.com>
+---
+ drivers/leds/leds-bcm6328.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+--- a/drivers/leds/leds-bcm6328.c
++++ b/drivers/leds/leds-bcm6328.c
+@@ -146,6 +146,7 @@ static int bcm6328_blink_set(struct led_
+ 	struct bcm6328_led *led =
+ 		container_of(led_cdev, struct bcm6328_led, cdev);
+ 	unsigned long delay, flags;
++	int rc;
+ 
+ 	if (!*delay_on)
+ 		*delay_on = BCM6328_LED_DEF_DELAY;
+@@ -183,16 +184,15 @@ static int bcm6328_blink_set(struct led_
+ 		bcm6328_led_write(led->mem + BCM6328_REG_INIT, val);
+ 
+ 		bcm6328_led_mode(led, BCM6328_LED_MODE_BLINK);
+-
+-		spin_unlock_irqrestore(led->lock, flags);
++		rc = 0;
+ 	} else {
+-		spin_unlock_irqrestore(led->lock, flags);
+ 		dev_dbg(led_cdev->dev,
+ 			"fallback to soft blinking (delay already set)\n");
+-		return -EINVAL;
++		rc = -EINVAL;
+ 	}
++	spin_unlock_irqrestore(led->lock, flags);
+ 
+-	return 0;
++	return rc;
+ }
+ 
+ static int bcm6328_hwled(struct device *dev, struct device_node *nc, u32 reg,

@@ -1,0 +1,136 @@
+From e797c468f4a7ac63053ea0e70494d9c02d82e257 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=C3=81lvaro=20Fern=C3=A1ndez=20Rojas?= <noltari@gmail.com>
+Date: Fri, 31 Jul 2015 09:41:53 +0200
+Subject: [PATCH] brcmnand: add polling mode support
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Álvaro Fernández Rojas <noltari@gmail.com>
+---
+ drivers/mtd/nand/brcmnand/brcmnand.c | 89 +++++++++++++++++++++++-------------
+ 1 file changed, 56 insertions(+), 33 deletions(-)
+
+--- a/drivers/mtd/nand/brcmnand/brcmnand.c
++++ b/drivers/mtd/nand/brcmnand/brcmnand.c
+@@ -123,6 +123,7 @@ struct brcmnand_controller {
+ 	struct brcmnand_soc	*soc;
+ 
+ 	int			cmd_pending;
++	bool			cmd_poll;
+ 	bool			dma_pending;
+ 	struct completion	done;
+ 	struct completion	dma_done;
+@@ -377,6 +378,13 @@ enum {
+ 	INTFC_CTLR_READY		= BIT(31),
+ };
+ 
++#define BRCMNAND_POLL_MASK	(INTFC_OOB_VALID | \
++				 INTFC_CACHE_VALID | \
++				 INTFC_FLASH_READY | \
++				 INTFC_CTLR_READY)
++#define BRCMNAND_POLL_RETRIES	10000
++#define BRCMNAND_POLL_TIMEOUT	100
++
+ static inline u32 nand_readreg(struct brcmnand_controller *ctrl, u32 offs)
+ {
+ 	return brcmnand_readl(ctrl->nand_base + offs);
+@@ -1046,15 +1054,24 @@ static int brcmnand_waitfunc(struct mtd_
+ 	unsigned long timeo = msecs_to_jiffies(100);
+ 
+ 	dev_dbg(ctrl->dev, "wait on native cmd %d\n", ctrl->cmd_pending);
+-	if (ctrl->cmd_pending &&
+-			wait_for_completion_timeout(&ctrl->done, timeo) <= 0) {
+-		u32 cmd = brcmnand_read_reg(ctrl, BRCMNAND_CMD_START)
+-					>> brcmnand_cmd_shift(ctrl);
+-
+-		dev_err_ratelimited(ctrl->dev,
+-			"timeout waiting for command %#02x\n", cmd);
+-		dev_err_ratelimited(ctrl->dev, "intfc status %08x\n",
+-			brcmnand_read_reg(ctrl, BRCMNAND_INTFC_STATUS));
++
++	if (ctrl->cmd_pending) {
++		if (ctrl->cmd_poll) {
++			int i;
++			for (i = 0; i < BRCMNAND_POLL_RETRIES; i++) {
++				u32 ready = brcmnand_read_reg(ctrl, BRCMNAND_INTFC_STATUS);
++				if ((ready & BRCMNAND_POLL_MASK) == BRCMNAND_POLL_MASK)
++					break;
++				udelay(BRCMNAND_POLL_TIMEOUT);
++			}
++		} else if (wait_for_completion_timeout(&ctrl->done, timeo) <= 0) {
++			u32 cmd = brcmnand_read_reg(ctrl, BRCMNAND_CMD_START)
++						>> brcmnand_cmd_shift(ctrl);
++			dev_err_ratelimited(ctrl->dev,
++				"timeout waiting for command %#02x\n", cmd);
++			dev_err_ratelimited(ctrl->dev, "intfc status %08x\n",
++				brcmnand_read_reg(ctrl, BRCMNAND_INTFC_STATUS));
++		}
+ 	}
+ 	ctrl->cmd_pending = 0;
+ 	return brcmnand_read_reg(ctrl, BRCMNAND_INTFC_STATUS) &
+@@ -2203,34 +2220,40 @@ int brcmnand_probe(struct platform_devic
+ 	}
+ 
+ 	/* IRQ */
+-	ctrl->irq = platform_get_irq(pdev, 0);
+-	if ((int)ctrl->irq < 0) {
+-		dev_err(dev, "no IRQ defined\n");
+-		return -ENODEV;
+-	}
++	if (of_property_read_bool(dn, "brcm,cmd-poll")) {
++		/* Polling mode for non-IRQ systems */
++		ctrl->cmd_poll = true;
++		dev_info(dev, "enabling polling mode\n");
++	} else {
++		ctrl->irq = platform_get_irq(pdev, 0);
++		if ((int)ctrl->irq < 0) {
++			dev_err(dev, "no IRQ defined\n");
++			return -ENODEV;
++		}
+ 
+-	/*
+-	 * Some SoCs integrate this controller (e.g., its interrupt bits) in
+-	 * interesting ways
+-	 */
+-	if (soc) {
+-		ctrl->soc = soc;
++		/*
++		 * Some SoCs integrate this controller (e.g., its interrupt bits) in
++		 * interesting ways
++		 */
++		if (soc) {
++			ctrl->soc = soc;
+ 
+-		ret = devm_request_irq(dev, ctrl->irq, brcmnand_irq, 0,
++			ret = devm_request_irq(dev, ctrl->irq, brcmnand_irq, 0,
+ 				       DRV_NAME, ctrl);
+ 
+-		/* Enable interrupt */
+-		ctrl->soc->ctlrdy_ack(ctrl->soc);
+-		ctrl->soc->ctlrdy_set_enabled(ctrl->soc, true);
+-	} else {
+-		/* Use standard interrupt infrastructure */
+-		ret = devm_request_irq(dev, ctrl->irq, brcmnand_ctlrdy_irq, 0,
+-				       DRV_NAME, ctrl);
+-	}
+-	if (ret < 0) {
+-		dev_err(dev, "can't allocate IRQ %d: error %d\n",
+-			ctrl->irq, ret);
+-		return ret;
++			/* Enable interrupt */
++			ctrl->soc->ctlrdy_ack(ctrl->soc);
++			ctrl->soc->ctlrdy_set_enabled(ctrl->soc, true);
++		} else {
++			/* Use standard interrupt infrastructure */
++			ret = devm_request_irq(dev, ctrl->irq, brcmnand_ctlrdy_irq, 0,
++					       DRV_NAME, ctrl);
++		}
++		if (ret < 0) {
++			dev_err(dev, "can't allocate IRQ %d: error %d\n",
++				ctrl->irq, ret);
++			return ret;
++		}
+ 	}
+ 
+ 	for_each_available_child_of_node(dn, child) {

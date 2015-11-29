@@ -1,0 +1,115 @@
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	compatible = "brcm,bcm3380";
+
+	aliases {
+		gpio0 = &gpio0;
+		gpio1 = &gpio1;
+		leds0 = &leds0;
+		uart0 = &uart0;
+		uart1 = &uart1;
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		mips-hpt-frequency = <166500000>;
+
+		cpu@0 {
+			compatible = "brcm,bmips4350", "mips,mips4Kc";
+			device_type = "cpu";
+			reg = <0>;
+		};
+		cpu@1 {
+			compatible = "brcm,bmips4350", "mips,mips4Kc";
+			device_type = "cpu";
+			reg = <1>;
+		};
+	};
+
+	clocks {
+		periph_clk: periph_clk {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <50000000>;
+		};
+	};
+
+	cpu_intc: cpu_intc {
+		#address-cells = <0>;
+		compatible = "mti,cpu-interrupt-controller";
+
+		interrupt-controller;
+		#interrupt-cells = <1>;
+	};
+
+	ubus {
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		compatible = "simple-bus";
+		ranges;
+
+		periph_intc: interrupt-controller@14e00030 {
+			compatible = "brcm,bcm6345-l1-intc";
+			reg = <0x14e00030 0x8>,
+			      <0x14e00038 0x8>;
+
+			interrupt-controller;
+			#interrupt-cells = <1>;
+
+			interrupt-parent = <&cpu_intc>;
+			interrupts = <2>, <3>;
+		};
+
+		gpio0: gpio-controller@14e00100 {
+			compatible = "brcm,bcm6345-gpio";
+			reg = <0x14e00100 0x4>, <0x14e00108 0x4>;
+
+			gpio-controller;
+			#gpio-cells = <2>;
+		};
+
+		gpio1: gpio-controller@14e00104 {
+			compatible = "brcm,bcm6345-gpio";
+			reg = <0x14e00104 0x4>, <0x14e0010c 0x4>;
+
+			gpio-controller;
+			#gpio-cells = <2>;
+		};
+
+		uart0: serial@14e00200 {
+			compatible = "brcm,bcm6345-uart";
+			reg = <0x14e00200 0x18>;
+
+			interrupt-parent = <&periph_intc>;
+			interrupts = <2>;
+
+			clocks = <&periph_clk>;
+
+			status = "disabled";
+		};
+
+		uart1: serial@014e00220 {
+			compatible = "brcm,bcm6345-uart";
+			reg = <0x14e00220 0x18>;
+
+			interrupt-parent = <&periph_intc>;
+			interrupts = <3>;
+
+			clocks = <&periph_clk>;
+
+			status = "disabled";
+		};
+
+		leds0: led-controller@14e00f00 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "brcm,bcm6328-leds";
+			reg = <0x14e00f00 0x1c>;
+
+			status = "disabled";
+		};
+	};
+};

@@ -1,0 +1,90 @@
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	compatible = "brcm,bcm6338";
+
+	aliases {
+		gpio0 = &gpio0;
+		pflash = &pflash;
+		uart0 = &uart0;
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		mips-hpt-frequency = <120000000>;
+
+		cpu@0 {
+			compatible = "brcm,bmips3300", "mips,mips4Kc";
+			device_type = "cpu";
+			reg = <0>;
+		};
+	};
+
+	clocks {
+		periph_clk: periph_clk {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <50000000>;
+		};
+	};
+
+	cpu_intc: cpu_intc {
+		#address-cells = <0>;
+		compatible = "mti,cpu-interrupt-controller";
+
+		interrupt-controller;
+		#interrupt-cells = <1>;
+	};
+
+	pflash: nor@1fc00000 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "cfi-flash";
+		reg = <0x1fc00000 0x400000>;
+		bank-width = <2>;
+
+		status = "disabled";
+	};
+
+	ubus {
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		compatible = "simple-bus";
+		ranges;
+
+		periph_intc: interrupt-controller@fffe000c {
+			compatible = "brcm,bcm6345-l1-intc";
+			reg = <0xfffe000c 0x8>;
+
+			interrupt-controller;
+			#interrupt-cells = <1>;
+
+			interrupt-parent = <&cpu_intc>;
+			interrupts = <2>;
+		};
+
+		uart0: serial@fffe0300 {
+			compatible = "brcm,bcm6345-uart";
+			reg = <0xfffe0300 0x18>;
+
+			interrupt-parent = <&periph_intc>;
+			interrupts = <2>;
+
+			clocks = <&periph_clk>;
+
+			status = "disabled";
+		};
+
+		gpio0: gpio-controller@fffe0404 {
+			compatible = "brcm,bcm6345-gpio";
+			reg = <0xfffe0404 0x4>, <0xfffe040c 0x4>;
+
+			gpio-controller;
+			#gpio-cells = <2>;
+
+			ngpios = <8>;
+		};
+	};
+};

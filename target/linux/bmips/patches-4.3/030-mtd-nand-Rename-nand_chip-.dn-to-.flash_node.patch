@@ -1,0 +1,71 @@
+From 61528d888adf9470db73aaadf1ff9ca35942262a Mon Sep 17 00:00:00 2001
+From: Marek Vasut <marex@denx.de>
+Date: Thu, 3 Sep 2015 18:35:37 +0200
+Subject: [PATCH] mtd: nand: Rename nand_chip .dn to .flash_node
+
+Use a more descriptive name for the device_node element in struct nand_chip .
+This name matches the element name used for device_node property of a flash
+in the spi-nor framework.
+
+Signed-off-by: Marek Vasut <marex@denx.de>
+Signed-off-by: Brian Norris <computersforpeace@gmail.com>
+---
+ drivers/mtd/nand/brcmnand/brcmnand.c | 5 +++--
+ drivers/mtd/nand/nand_base.c         | 4 ++--
+ include/linux/mtd/nand.h             | 4 ++--
+ 3 files changed, 7 insertions(+), 6 deletions(-)
+
+--- a/drivers/mtd/nand/brcmnand/brcmnand.c
++++ b/drivers/mtd/nand/brcmnand/brcmnand.c
+@@ -1792,7 +1792,8 @@ static int brcmnand_setup_dev(struct brc
+ 
+ 	memset(cfg, 0, sizeof(*cfg));
+ 
+-	ret = of_property_read_u32(chip->dn, "brcm,nand-oob-sector-size",
++	ret = of_property_read_u32(chip->flash_node,
++				   "brcm,nand-oob-sector-size",
+ 				   &oob_sector);
+ 	if (ret) {
+ 		/* Use detected size */
+@@ -1899,7 +1900,7 @@ static int brcmnand_init_cs(struct brcmn
+ 	mtd = &host->mtd;
+ 	chip = &host->chip;
+ 
+-	chip->dn = dn;
++	chip->flash_node = dn;
+ 	chip->priv = host;
+ 	mtd->priv = chip;
+ 	mtd->name = devm_kasprintf(&pdev->dev, GFP_KERNEL, "brcmnand.%d",
+--- a/drivers/mtd/nand/nand_base.c
++++ b/drivers/mtd/nand/nand_base.c
+@@ -3846,8 +3846,8 @@ int nand_scan_ident(struct mtd_info *mtd
+ 	struct nand_flash_dev *type;
+ 	int ret;
+ 
+-	if (chip->dn) {
+-		ret = nand_dt_init(mtd, chip, chip->dn);
++	if (chip->flash_node) {
++		ret = nand_dt_init(mtd, chip, chip->flash_node);
+ 		if (ret)
+ 			return ret;
+ 	}
+--- a/include/linux/mtd/nand.h
++++ b/include/linux/mtd/nand.h
+@@ -544,7 +544,7 @@ struct nand_buffers {
+  *			flash device
+  * @IO_ADDR_W:		[BOARDSPECIFIC] address to write the 8 I/O lines of the
+  *			flash device.
+- * @dn:			[BOARDSPECIFIC] device node describing this instance
++ * @flash_node:		[BOARDSPECIFIC] device node describing this instance
+  * @read_byte:		[REPLACEABLE] read one byte from the chip
+  * @read_word:		[REPLACEABLE] read one word from the chip
+  * @write_byte:		[REPLACEABLE] write a single byte to the chip on the
+@@ -647,7 +647,7 @@ struct nand_chip {
+ 	void __iomem *IO_ADDR_R;
+ 	void __iomem *IO_ADDR_W;
+ 
+-	struct device_node *dn;
++	struct device_node *flash_node;
+ 
+ 	uint8_t (*read_byte)(struct mtd_info *mtd);
+ 	u16 (*read_word)(struct mtd_info *mtd);

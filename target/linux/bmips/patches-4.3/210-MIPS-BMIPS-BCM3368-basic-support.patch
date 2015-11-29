@@ -1,0 +1,22 @@
+--- a/arch/mips/bmips/setup.c
++++ b/arch/mips/bmips/setup.c
+@@ -47,6 +47,11 @@ static void kbase_setup(void)
+ 	ebase = kbase;
+ }
+ 
++static void bcm3368_quirks(void)
++{
++	bmips_smp_enabled = 0;
++}
++
+ static void bcm3384_viper_quirks(void)
+ {
+ 	/*
+@@ -101,6 +106,7 @@ static void bcm6368_quirks(void)
+ }
+ 
+ static const struct bmips_quirk bmips_quirk_list[] = {
++	{ "brcm,bcm3368",		&bcm3368_quirks			},
+ 	{ "brcm,bcm3384-viper",		&bcm3384_viper_quirks		},
+ 	{ "brcm,bcm33843-viper",	&bcm3384_viper_quirks		},
+ 	{ "brcm,bcm6328",		&bcm6328_quirks			},

@@ -1,0 +1,72 @@
+/dts-v1/;
+
+#include "bcm3380.dtsi"
+
+#include <dt-bindings/input/input.h>
+
+/ {
+	model = "Netgear CG3100D";
+	compatible = "netgear,cg3100d", "brcm,bcm3380";
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x00000000 0x04000000>;
+	};
+
+	chosen {
+		bootargs = "console=ttyS0,115200";
+		stdout-path = &uart0;
+	};
+
+	gpio-keys-polled {
+		compatible = "gpio-keys-polled";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		poll-interval = <20>;
+		debounce-interval = <60>;
+
+		wifi {
+			label = "reset";
+			gpios = <&gpio1 0 1>;
+			linux,code = <KEY_WLAN>;
+		};
+		reset {
+			label = "reset";
+			gpios = <&gpio1 4 1>;
+			linux,code = <KEY_RESTART>;
+		};
+		wps {
+			label = "reset";
+			gpios = <&gpio1 27 1>;
+			linux,code = <KEY_WPS_BUTTON>;
+		};
+	};
+
+	gpio-leds {
+		compatible = "gpio-leds";
+
+		wifi_green {
+			label = "CG3100D:green:wifi";
+			gpios = <&gpio0 4 0>;
+		};
+		wps_green {
+			label = "CG3100D:green:wps";
+			gpios = <&gpio0 10 0>;
+		};
+		/*
+		switch {
+			label = "CG3100D:switch";
+			gpios = <&gpio0 16 0>;
+			default-state = "on";
+		};
+		*/
+		power_red {
+			label = "CG3100D:red:power";
+			gpios = <&gpio0 19 1>;
+		};
+	};
+};
+
+&uart0 {
+	status = "ok";
+};

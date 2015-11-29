@@ -1,0 +1,24 @@
+/dts-v1/;
+
+#include "bcm6338.dtsi"
+
+#include <dt-bindings/input/input.h>
+
+/ {
+	compatible = "sagem,f@st1704", "brcm,bcm6338";
+	model = "Sagem F@ST1704";
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x00000000 0x01000000>;
+	};
+
+	chosen {
+		bootargs = "console=ttyS0,115200";
+		stdout-path = &uart0;
+	};
+};
+
+&uart0 {
+	status = "ok";
+};

@@ -1,0 +1,24 @@
+From 494da07c0f20245b3af54e33e1d2cd91d386c412 Mon Sep 17 00:00:00 2001
+From: Brian Norris <computersforpeace@gmail.com>
+Date: Wed, 20 May 2015 17:05:06 -0700
+Subject: [PATCH] mtd: brcmnand: remove unnecessary fields from brcmnand_soc
+
+These really aren't needed, especially now that we embed the soc struct
+in our private struct, so we can stash things there if needed.
+
+Signed-off-by: Brian Norris <computersforpeace@gmail.com>
+---
+ drivers/mtd/nand/brcmnand/brcmnand.h | 2 --
+ 1 file changed, 2 deletions(-)
+
+--- a/drivers/mtd/nand/brcmnand/brcmnand.h
++++ b/drivers/mtd/nand/brcmnand/brcmnand.h
+@@ -21,8 +21,6 @@ struct platform_device;
+ struct dev_pm_ops;
+ 
+ struct brcmnand_soc {
+-	struct platform_device *pdev;
+-	void *priv;
+ 	bool (*ctlrdy_ack)(struct brcmnand_soc *soc);
+ 	void (*ctlrdy_set_enabled)(struct brcmnand_soc *soc, bool en);
+ 	void (*prepare_data_bus)(struct brcmnand_soc *soc, bool prepare);

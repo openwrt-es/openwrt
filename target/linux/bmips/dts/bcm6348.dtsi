@@ -1,0 +1,113 @@
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	compatible = "brcm,bcm6348";
+
+	aliases {
+		gpio0 = &gpio0;
+		gpio1 = &gpio1;
+		ohci0 = &ohci0;
+		pflash = &pflash;
+		uart0 = &uart0;
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		mips-hpt-frequency = <120000000>;
+
+		cpu@0 {
+			compatible = "brcm,bmips3300", "mips,mips4Kc";
+			device_type = "cpu";
+			reg = <0>;
+		};
+	};
+
+	clocks {
+		periph_clk: periph_clk {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <50000000>;
+		};
+	};
+
+	cpu_intc: cpu_intc {
+		#address-cells = <0>;
+		compatible = "mti,cpu-interrupt-controller";
+
+		interrupt-controller;
+		#interrupt-cells = <1>;
+	};
+
+	pflash: nor@1fc00000 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "cfi-flash";
+		reg = <0x1fc00000 0x400000>;
+		bank-width = <2>;
+
+		status = "disabled";
+	};
+
+	ubus {
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		compatible = "simple-bus";
+		ranges;
+
+		periph_intc: interrupt-controller@fffe000c {
+			compatible = "brcm,bcm6345-l1-intc";
+			reg = <0xfffe000c 0x8>;
+
+			interrupt-controller;
+			#interrupt-cells = <1>;
+
+			interrupt-parent = <&cpu_intc>;
+			interrupts = <2>;
+		};
+
+		uart0: serial@fffe0300 {
+			compatible = "brcm,bcm6345-uart";
+			reg = <0xfffe0300 0x18>;
+
+			interrupt-parent = <&periph_intc>;
+			interrupts = <2>;
+
+			clocks = <&periph_clk>;
+
+			status = "disabled";
+		};
+
+		gpio1: gpio-controller@fffe0400 {
+			compatible = "brcm,bcm6345-gpio";
+			reg = <0xfffe0400 0x4>, <0xfffe0408 0x4>;
+
+			gpio-controller;
+			#gpio-cells = <2>;
+
+			ngpios = <5>;
+		};
+
+		gpio0: gpio-controller@fffe0404 {
+			compatible = "brcm,bcm6345-gpio";
+			reg = <0xfffe0404 0x4>, <0xfffe040c 0x4>;
+
+			gpio-controller;
+			#gpio-cells = <2>;
+		};
+
+		ohci0: usb@fffe1b00 {
+			compatible = "brcm,bcm6348-ohci", "generic-ohci";
+			reg = <0xfffe1b00 0x100>;
+			num-ports = <1>;
+			big-endian;
+			no-big-frame-no;
+
+			interrupt-parent = <&periph_intc>;
+			interrupts = <12>;
+
+			status = "disabled";
+		};
+	};
+};

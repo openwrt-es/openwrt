@@ -1,0 +1,69 @@
+From d19e6b6a0062c86a75365f0715fd079245f6aab9 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=C3=81lvaro=20Fern=C3=A1ndez=20Rojas?= <noltari@gmail.com>
+Date: Thu, 8 Oct 2015 12:35:53 +0200
+Subject: [PATCH] leds-bcm6328: simplify and improve default-state handling
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This patch simplifies and improves the code related to
+default-state handling.
+It also changes the code to power off the LEDs by default.
+
+Signed-off-by: Álvaro Fernández Rojas <noltari@gmail.com>
+Signed-off-by: Jacek Anaszewski <j.anaszewski@samsung.com>
+---
+ drivers/leds/leds-bcm6328.c | 24 +++++++++++++++---------
+ 1 file changed, 15 insertions(+), 9 deletions(-)
+
+--- a/drivers/leds/leds-bcm6328.c
++++ b/drivers/leds/leds-bcm6328.c
+@@ -281,11 +281,10 @@ static int bcm6328_led(struct device *de
+ 						    "linux,default-trigger",
+ 						    NULL);
+ 
++	spin_lock_irqsave(lock, flags);
+ 	if (!of_property_read_string(nc, "default-state", &state)) {
+-		spin_lock_irqsave(lock, flags);
+ 		if (!strcmp(state, "on")) {
+ 			led->cdev.brightness = LED_FULL;
+-			bcm6328_led_mode(led, BCM6328_LED_MODE_ON);
+ 		} else if (!strcmp(state, "keep")) {
+ 			void __iomem *mode;
+ 			unsigned long val, shift;
+@@ -296,21 +295,28 @@ static int bcm6328_led(struct device *de
+ 			else
+ 				mode = mem + BCM6328_REG_MODE_LO;
+ 
+-			val = bcm6328_led_read(mode) >> (shift % 16);
++			val = bcm6328_led_read(mode) >>
++			      BCM6328_LED_SHIFT(shift % 16);
+ 			val &= BCM6328_LED_MODE_MASK;
+-			if (val == BCM6328_LED_MODE_ON)
++			if ((led->active_low && val == BCM6328_LED_MODE_ON) ||
++			    (!led->active_low && val == BCM6328_LED_MODE_OFF))
+ 				led->cdev.brightness = LED_FULL;
+-			else {
++			else
+ 				led->cdev.brightness = LED_OFF;
+-				bcm6328_led_mode(led, BCM6328_LED_MODE_OFF);
+-			}
+ 		} else {
+ 			led->cdev.brightness = LED_OFF;
+-			bcm6328_led_mode(led, BCM6328_LED_MODE_OFF);
+ 		}
+-		spin_unlock_irqrestore(lock, flags);
++	} else {
++		led->cdev.brightness = LED_OFF;
+ 	}
+ 
++	if ((led->active_low && led->cdev.brightness == LED_FULL) ||
++	    (!led->active_low && led->cdev.brightness == LED_OFF))
++		bcm6328_led_mode(led, BCM6328_LED_MODE_ON);
++	else
++		bcm6328_led_mode(led, BCM6328_LED_MODE_OFF);
++	spin_unlock_irqrestore(lock, flags);
++
+ 	led->cdev.brightness_set = bcm6328_led_set;
+ 	led->cdev.blink_set = bcm6328_blink_set;
+ 

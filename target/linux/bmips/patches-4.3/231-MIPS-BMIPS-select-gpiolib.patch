@@ -1,0 +1,10 @@
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -155,6 +155,7 @@ config BMIPS_GENERIC
+ 	select BRCMSTB_L2_IRQ
+ 	select IRQ_MIPS_CPU
+ 	select DMA_NONCOHERENT
++	select GPIOLIB
+ 	select SYS_SUPPORTS_32BIT_KERNEL
+ 	select SYS_SUPPORTS_LITTLE_ENDIAN
+ 	select SYS_SUPPORTS_BIG_ENDIAN

@@ -1,0 +1,122 @@
+/dts-v1/;
+
+#include "bcm6358.dtsi"
+
+#include <dt-bindings/input/input.h>
+
+/ {
+	model = "SFR Neuf Box 4 (Sercomm)";
+	compatible = "sfr,nb4-ser-r0", "brcm,bcm6358";
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x00000000 0x02000000>;
+	};
+
+	chosen {
+		bootargs = "console=ttyS0,115200";
+		stdout-path = &uart0;
+	};
+
+	gpio-keys-polled {
+		compatible = "gpio-keys-polled";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		poll-interval = <20>;
+		debounce-interval = <60>;
+
+		service {
+			label = "service";
+			gpios = <&gpio0 27 1>;
+			linux,code = <BTN_0>;
+		};
+		clip {
+			label = "clip";
+			gpios = <&gpio0 31 1>;
+			linux,code = <BTN_1>;
+		};
+		reset {
+			label = "reset";
+			gpios = <&gpio1 2 1>;
+			linux,code = <KEY_RESTART>;
+		};
+		wps {
+			label = "wps";
+			gpios = <&gpio1 5 1>;
+			linux,code = <KEY_WPS_BUTTON>;
+		};
+	};
+
+	gpio-leds {
+		compatible = "gpio-leds";
+
+		traffic_white {
+			label = "NB4-SER-r0:white:traffic";
+			gpios = <&gpio0 2 1>;
+		};
+		service_blue {
+			label = "NB4-SER-r0:blue:service";
+			gpios = <&gpio0 4 1>;
+		};
+		wifi_white {
+			label = "NB4-SER-r0:white:wifi";
+			gpios = <&gpio0 15 1>;
+		};
+		service_red {
+			label = "NB4-SER-r0:red:service";
+			gpios = <&gpio0 29 1>;
+		};
+		service_green {
+			label = "NB4-SER-r0:green:service";
+			gpios = <&gpio0 30 1>;
+		};
+	};
+};
+
+&leds0 {
+	status = "ok";
+	brcm,clk-div = <1>;
+
+	alarm_white@0 {
+		reg = <0>;
+		active-low;
+		label = "NB4-SER-r0:white:alarm";
+	};
+	tv_white@2 {
+		reg = <2>;
+		active-low;
+		label = "NB4-SER-r0:white:tv";
+	};
+	tel_white@3 {
+		reg = <3>;
+		active-low;
+		label = "NB4-SER-r0:white:tel";
+	};
+	adsl_white@4 {
+		reg = <4>;
+		active-low;
+		label = "NB4-SER-r0:white:adsl";
+	};
+};
+
+&pflash {
+	status = "ok";
+
+	cfe@0 {
+		label = "cfe";
+		reg = <0x000000 0x010000>;
+		read-only;
+	};
+	linux@10000 {
+		label = "linux";
+		reg = <0x010000 0x7e0000>;
+	};
+	nvram@7f0000 {
+		label = "nvram";
+		reg = <0x7f0000 0x010000>;
+	};
+};
+
+&uart0 {
+	status = "ok";
+};

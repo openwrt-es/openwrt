@@ -1,0 +1,10 @@
+--- a/arch/mips/bmips/setup.c
++++ b/arch/mips/bmips/setup.c
+@@ -111,6 +111,7 @@ static const struct bmips_quirk bmips_qu
+ 	{ "brcm,bcm3384-viper",		&bcm3384_viper_quirks		},
+ 	{ "brcm,bcm33843-viper",	&bcm3384_viper_quirks		},
+ 	{ "brcm,bcm6328",		&bcm6328_quirks			},
++	{ "brcm,bcm63268",		&bcm6368_quirks			},
+ 	{ "brcm,bcm6338",		&bcm3368_quirks			},
+ 	{ "brcm,bcm6345",		&bcm3368_quirks			},
+ 	{ "brcm,bcm6348",		&bcm3368_quirks			},

@@ -1,0 +1,10 @@
+--- a/arch/mips/bmips/dma.c
++++ b/arch/mips/bmips/dma.c
+@@ -61,6 +61,7 @@ dma_addr_t plat_map_dma_mem_page(struct
+ {
+ 	return bmips_phys_to_dma(dev, page_to_phys(page));
+ }
++EXPORT_SYMBOL(plat_map_dma_mem_page);
+ 
+ unsigned long plat_dma_addr_to_phys(struct device *dev, dma_addr_t dma_addr)
+ {

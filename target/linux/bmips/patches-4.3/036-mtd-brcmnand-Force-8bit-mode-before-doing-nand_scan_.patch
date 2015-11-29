@@ -1,0 +1,46 @@
+From 4d1ea982a9beb4e47bba41131973329e2a012b38 Mon Sep 17 00:00:00 2001
+From: Anup Patel <anup.patel@broadcom.com>
+Date: Fri, 30 Oct 2015 12:29:20 +0530
+Subject: [PATCH] mtd: brcmnand: Force 8bit mode before doing nand_scan_ident()
+
+Just like other NAND controllers, the NAND READID command only works
+in 8bit mode for all versions of BRCMNAND controller.
+
+This patch forces 8bit mode for each NAND CS in brcmnand_init_cs()
+before doing nand_scan_ident() to ensure that BRCMNAND controller
+is in 8bit mode when NAND READID command is issued.
+
+Signed-off-by: Anup Patel <anup.patel@broadcom.com>
+Reviewed-by: Ray Jui <rjui@broadcom.com>
+Reviewed-by: Scott Branden <sbranden@broadcom.com>
+Signed-off-by: Brian Norris <computersforpeace@gmail.com>
+---
+ drivers/mtd/nand/brcmnand/brcmnand.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+--- a/drivers/mtd/nand/brcmnand/brcmnand.c
++++ b/drivers/mtd/nand/brcmnand/brcmnand.c
+@@ -1913,6 +1913,7 @@ static int brcmnand_init_cs(struct brcmn
+ 	struct mtd_info *mtd;
+ 	struct nand_chip *chip;
+ 	int ret;
++	u16 cfg_offs;
+ 	struct mtd_part_parser_data ppdata = { .of_node = dn };
+ 
+ 	ret = of_property_read_u32(dn, "reg", &host->cs);
+@@ -1955,6 +1956,15 @@ static int brcmnand_init_cs(struct brcmn
+ 
+ 	chip->controller = &ctrl->controller;
+ 
++	/*
++	 * The bootloader might have configured 16bit mode but
++	 * NAND READID command only works in 8bit mode. We force
++	 * 8bit mode here to ensure that NAND READID commands works.
++	 */
++	cfg_offs = brcmnand_cs_offset(ctrl, host->cs, BRCMNAND_CS_CFG);
++	nand_writereg(ctrl, cfg_offs,
++		      nand_readreg(ctrl, cfg_offs) & ~CFG_BUS_WIDTH);
++
+ 	if (nand_scan_ident(mtd, 1, NULL))
+ 		return -ENXIO;
+ 

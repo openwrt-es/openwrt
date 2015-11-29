@@ -1,0 +1,26 @@
+--- a/arch/mips/bmips/setup.c
++++ b/arch/mips/bmips/setup.c
+@@ -207,4 +207,4 @@ static int __init plat_dev_init(void)
+ 	return 0;
+ }
+ 
+-device_initcall(plat_dev_init);
++arch_initcall(plat_dev_init);
+--- a/drivers/tty/serial/bcm63xx_uart.c
++++ b/drivers/tty/serial/bcm63xx_uart.c
+@@ -905,14 +905,7 @@ static int __init bcm_uart_init(void)
+ 	return ret;
+ }
+ 
+-static void __exit bcm_uart_exit(void)
+-{
+-	platform_driver_unregister(&bcm_uart_platform_driver);
+-	uart_unregister_driver(&bcm_uart_driver);
+-}
+-
+-module_init(bcm_uart_init);
+-module_exit(bcm_uart_exit);
++subsys_initcall(bcm_uart_init);
+ 
+ MODULE_AUTHOR("Maxime Bizon <mbizon@freebox.fr>");
+ MODULE_DESCRIPTION("Broadcom 63xx integrated uart driver");

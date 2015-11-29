@@ -1,0 +1,27 @@
+From cc67b5ec9f5654fd2b68d2e84eaaf416992457c2 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=C3=81lvaro=20Fern=C3=A1ndez=20Rojas?= <noltari@gmail.com>
+Date: Thu, 8 Oct 2015 12:35:52 +0200
+Subject: [PATCH] leds-bcm6328: print invalid LED
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Print invalid LED instead of warning only about maximum LED value.
+
+Signed-off-by: Álvaro Fernández Rojas <noltari@gmail.com>
+Signed-off-by: Jacek Anaszewski <j.anaszewski@samsung.com>
+---
+ drivers/leds/leds-bcm6328.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/drivers/leds/leds-bcm6328.c
++++ b/drivers/leds/leds-bcm6328.c
+@@ -373,7 +373,7 @@ static int bcm6328_leds_probe(struct pla
+ 			continue;
+ 
+ 		if (reg >= BCM6328_LED_MAX_COUNT) {
+-			dev_err(dev, "invalid LED (>= %d)\n",
++			dev_err(dev, "invalid LED (%u >= %d)\n", reg,
+ 				BCM6328_LED_MAX_COUNT);
+ 			continue;
+ 		}

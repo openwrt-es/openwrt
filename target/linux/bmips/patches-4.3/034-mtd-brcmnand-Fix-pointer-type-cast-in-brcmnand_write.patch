@@ -1,0 +1,35 @@
+From 3f08b8ba9f5d7ec528a9fc293e76a14c2851e403 Mon Sep 17 00:00:00 2001
+From: Anup Patel <anup.patel@broadcom.com>
+Date: Fri, 2 Oct 2015 23:26:42 +0530
+Subject: [PATCH] mtd: brcmnand: Fix pointer type-cast in brcmnand_write()
+
+We should always type-cast pointer to "long" or "unsigned long"
+because size of pointer is same as machine word size. This will
+avoid pointer type-cast issues on both 32bit and 64bit systems.
+
+This patch fixes pointer type-cast issue in brcmnand_write()
+as-per above info.
+
+Signed-off-by: Anup Patel <anup.patel@broadcom.com>
+Reviewed-by: Vikram Prakash <vikramp@broadcom.com>
+Reviewed-by: Ray Jui <rjui@broadcom.com>
+Reviewed-by: Scott Branden <sbranden@broadcom.com>
+Signed-off-by: Brian Norris <computersforpeace@gmail.com>
+---
+ drivers/mtd/nand/brcmnand/brcmnand.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+--- a/drivers/mtd/nand/brcmnand/brcmnand.c
++++ b/drivers/mtd/nand/brcmnand/brcmnand.c
+@@ -1544,9 +1544,9 @@ static int brcmnand_write(struct mtd_inf
+ 
+ 	dev_dbg(ctrl->dev, "write %llx <- %p\n", (unsigned long long)addr, buf);
+ 
+-	if (unlikely((u32)buf & 0x03)) {
++	if (unlikely((unsigned long)buf & 0x03)) {
+ 		dev_warn(ctrl->dev, "unaligned buffer: %p\n", buf);
+-		buf = (u32 *)((u32)buf & ~0x03);
++		buf = (u32 *)((unsigned long)buf & ~0x03);
+ 	}
+ 
+ 	brcmnand_wp(mtd, 0);

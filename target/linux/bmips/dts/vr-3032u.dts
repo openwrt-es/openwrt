@@ -1,0 +1,161 @@
+/dts-v1/;
+
+#include "bcm63268.dtsi"
+
+#include <dt-bindings/input/input.h>
+
+/ {
+	compatible = "comtrend,vr-3032u", "brcm,bcm63268";
+	model = "Comtrend VR-3032u";
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x00000000 0x04000000>;
+	};
+
+	chosen {
+		bootargs = "console=ttyS0,115200";
+		stdout-path = &uart0;
+	};
+
+	gpio-keys-polled {
+		compatible = "gpio-keys-polled";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		poll-interval = <20>;
+		debounce-interval = <60>;
+
+		reset {
+			label = "reset";
+			gpios = <&gpio1 0 1>;
+			linux,code = <KEY_RESTART>;
+		};
+		wps {
+			label = "wps";
+			gpios = <&gpio1 1 1>;
+			linux,code = <KEY_WPS_BUTTON>;
+		};
+	};
+};
+
+&leds0 {
+	status = "ok";
+	brcm,serial-leds;
+	brcm,serial-dat-low;
+	brcm,serial-shift-inv;
+
+	gphy0_spd0@0 {
+		reg = <0>;
+		brcm,hardware-controlled;
+		brcm,link-signal-sources = <0>;
+	};
+	gphy0_spd1@1 {
+		reg = <1>;
+		brcm,hardware-controlled;
+		brcm,link-signal-sources = <1>;
+	};
+	inet_red@2 {
+		reg = <2>;
+		active-low;
+		label = "VR-3032u:red:inet";
+	};
+	dsl_green@3 {
+		reg = <3>;
+		active-low;
+		label = "VR-3032u:green:dsl";
+	};
+	usb_green@4 {
+		reg = <4>;
+		active-low;
+		label = "VR-3032u:green:usb";
+	};
+	wps_green@7 {
+		reg = <7>;
+		active-low;
+		label = "VR-3032u:green:wps";
+	};
+	inet_green@8 {
+		reg = <8>;
+		active-low;
+		label = "VR-3032u:green:inet";
+	};
+	ephy0_act@9 {
+		reg = <9>;
+		brcm,hardware-controlled;
+	};
+	ephy1_act@10 {
+		reg = <10>;
+		brcm,hardware-controlled;
+	};
+	ephy2_act@11 {
+		reg = <11>;
+		brcm,hardware-controlled;
+	};
+	gphy0_act@12 {
+		reg = <12>;
+		brcm,hardware-controlled;
+	};
+	ephy0_spd@13 {
+		reg = <13>;
+		brcm,hardware-controlled;
+	};
+	ephy1_spd@14 {
+		reg = <14>;
+		brcm,hardware-controlled;
+	};
+	ephy2_spd@15 {
+		reg = <15>;
+		brcm,hardware-controlled;
+	};
+	power_green@20 {
+		reg = <20>;
+		active-low;
+		label = "VR-3032u:green:power";
+		default-state = "on";
+	};
+};
+
+&nflash {
+	status = "ok";
+
+	nandcs@0 {
+		compatible = "brcm,nandcs";
+		#size-cells = <1>;
+		#address-cells = <1>;
+		reg = <0>;
+		nand-ecc-step-size = <512>;
+		nand-ecc-strength = <15>;
+		nand-on-flash-bbt;
+		brcm,nand-oob-sector-size = <64>;
+
+		cfe@0 {
+			label = "cfe";
+			reg = <0x0000000 0x0020000>;
+			read-only;
+		};
+		linux@20000 {
+			label = "linux";
+			reg = <0x0020000 0x7ae0000>;
+			read-only;
+		};
+		img1@20000 {
+			label = "img1";
+			reg = <0x0020000 0x3d60000>;
+			read-only;
+		};
+		img2@3d80000 {
+			label = "img2";
+			reg = <0x3d80000 0x3d80000>;
+			read-only;
+		};
+		data@7b00000 {
+			label = "data";
+			reg = <0x7b00000 0x0400000>;
+			read-only;
+		};
+	};
+};
+
+&uart0 {
+	status = "ok";
+};
