@@ -1,11 +1,14 @@
 #
-# Copyright (C) 2013 OpenWrt.org
+# Copyright (C) 2013-2015 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/image.mk
+
+FAT32_BLOCK_SIZE=1024
+FAT32_BLOCKS=$(shell echo $$(($(CONFIG_IMX6_SD_BOOT_PARTSIZE)*1024*1024/$(FAT32_BLOCK_SIZE))))
 
 #################################################
 # Images
@@ -67,6 +70,28 @@ define Build/ubi-boot-overlay
 	)
 endef
 
+# build a SD image with 2 partitions: FAT (bootfs) + EXT4 (rootfs)
+define Build/image-sdcard
+	# Create bootfs partition
+	rm -f $@.boot
+	mkfs.fat -C $@.boot $(FAT32_BLOCKS)
+	mcopy -i $@.boot $(word 1,$^) ::zImage
+	mcopy -i $@.boot $(BIN_DIR)/uboot-$(BOARD)-$(DEVICE_BOOT_NAME)/openwrt-$(BOARD)-$(DEVICE_BOOT_NAME)-u-boot.imx \
+		::/uboot-$(DEVICE_BOOT_NAME).imx
+	mmd -i $@.boot ::/dts
+	$(foreach dts,$(shell echo $(DEVICE_DTS)), \
+		$(CP) $(DTS_DIR)/$(dts).dtb \
+			$(BIN_DIR)/$(IMG_PREFIX)-$(dts).dtb; \
+		mcopy -i $@.boot $(DTS_DIR)/$(dts).dtb ::/dts/; \
+	)
+	# Generate SD card image
+	$(TOPDIR)/target/linux/brcm2708/image/gen_rpi_sdcard_img.sh $@ $@.boot $(word 2,$^) \
+		$(CONFIG_IMX6_SD_BOOT_PARTSIZE) $(CONFIG_TARGET_ROOTFS_PARTSIZE)
+	# Write bootloader to image at proper block
+	dd if=$(BIN_DIR)/uboot-$(BOARD)-$(DEVICE_BOOT_NAME)/openwrt-$(BOARD)-$(DEVICE_BOOT_NAME)-u-boot.imx \
+		of=$@ bs=$(FAT32_BLOCK_SIZE) seek=$(DEVICE_BOOT_BLOCK) conv=notrunc
+endef
+
 #################################################
 # Devices
 #################################################
@@ -85,6 +110,59 @@ define Device/Default
 endef
 
 DEVICE_VARS += DEVICE_DTS
+
+define Device/imx6_sd
+	FILESYSTEMS := ext4
+	KERNEL_SUFFIX := -zImage
+	KERNEL := kernel-bin
+	IMAGE_NAME = $$(IMAGE_PREFIX)-$$(1)-$$(2)
+	IMAGES := sdcard.img
+	IMAGE/sdcard.img := image-sdcard
+	DEVICE_BOOT_NAME :=
+	DEVICE_BOOT_BLOCK :=
+endef
+
+DEVICE_VARS += DEVICE_BOOT_NAME DEVICE_BOOT_BLOCK
+
+define Device/udoo_neo
+	$(Device/imx6_sd)
+	PROFILES = Generic UDOO_NEO
+	DEVICE_DTS := \
+		imx6sx-udoo-neo-basic \
+		imx6sx-udoo-neo-basic-hdmi \
+		imx6sx-udoo-neo-basic-hdmi-m4 \
+		imx6sx-udoo-neo-basic-lvds15 \
+		imx6sx-udoo-neo-basic-lvds15-m4 \
+		imx6sx-udoo-neo-basic-lvds7 \
+		imx6sx-udoo-neo-basic-lvds7-m4 \
+		imx6sx-udoo-neo-basic-m4 \
+		imx6sx-udoo-neo-basicks \
+		imx6sx-udoo-neo-basicks-hdmi \
+		imx6sx-udoo-neo-basicks-hdmi-m4 \
+		imx6sx-udoo-neo-basicks-lvds15 \
+		imx6sx-udoo-neo-basicks-lvds15-m4 \
+		imx6sx-udoo-neo-basicks-lvds7 \
+		imx6sx-udoo-neo-basicks-lvds7-m4 \
+		imx6sx-udoo-neo-basicks-m4 \
+		imx6sx-udoo-neo-extended \
+		imx6sx-udoo-neo-extended-hdmi \
+		imx6sx-udoo-neo-extended-hdmi-m4 \
+		imx6sx-udoo-neo-extended-lvds15 \
+		imx6sx-udoo-neo-extended-lvds15-m4 \
+		imx6sx-udoo-neo-extended-lvds7 \
+		imx6sx-udoo-neo-extended-lvds7-m4 \
+		imx6sx-udoo-neo-extended-m4 \
+		imx6sx-udoo-neo-full \
+		imx6sx-udoo-neo-full-hdmi \
+		imx6sx-udoo-neo-full-hdmi-m4 \
+		imx6sx-udoo-neo-full-lvds15 \
+		imx6sx-udoo-neo-full-lvds15-m4 \
+		imx6sx-udoo-neo-full-lvds7 \
+		imx6sx-udoo-neo-full-lvds7-m4 \
+		imx6sx-udoo-neo-full-m4
+	DEVICE_BOOT_NAME := udoo_neo
+	DEVICE_BOOT_BLOCK := 1
+endef
 
 define Device/ventana
 	PROFILES = Generic VENTANA
@@ -113,6 +191,7 @@ define Device/wandboard
 endef
 
 TARGET_DEVICES += \
+	udoo_neo \
 	ventana \
 	wandboard
 
