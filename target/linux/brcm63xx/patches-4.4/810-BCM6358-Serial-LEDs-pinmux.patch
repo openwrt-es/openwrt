@@ -1,0 +1,25 @@
+--- a/arch/mips/bcm63xx/boards/board_common.c
++++ b/arch/mips/bcm63xx/boards/board_common.c
+@@ -208,6 +208,22 @@ int __init board_register_devices(void)
+ 	}
+ #endif
+ 
++	if (of_machine_is_compatible("comtrend,ct-6373") ||
++	    of_machine_is_compatible("thomson,homehub2a") ||
++	    of_machine_is_compatible("sfr,nb4-fxc-r1") ||
++	    of_machine_is_compatible("sfr,nb4-ser-r0")) {
++		u32 val_gpio_mode, val_gpio_ctl_lo;
++
++		val_gpio_mode = bcm_gpio_readl(GPIO_MODE_REG);
++		val_gpio_ctl_lo = bcm_gpio_readl(GPIO_CTL_LO_REG);
++
++		val_gpio_mode |= BIT(10); /* Serial LEDs */
++		val_gpio_ctl_lo |= BIT(6) | BIT(7); /* Serial LEDs DAT/CLK */
++
++		bcm_gpio_writel(val_gpio_mode, GPIO_MODE_REG);
++		bcm_gpio_writel(val_gpio_ctl_lo, GPIO_CTL_LO_REG);
++	}
++
+ 	bcm63xx_gpio_init();
+ 
+ 	if (board.has_uart0)
