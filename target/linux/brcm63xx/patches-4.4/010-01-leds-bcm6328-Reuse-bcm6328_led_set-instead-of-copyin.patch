@@ -1,0 +1,39 @@
+From a3fac1cea8aa51782e788170818b0937e752b4e8 Mon Sep 17 00:00:00 2001
+From: Simon Arlott <simon@fire.lp0.eu>
+Date: Mon, 16 Nov 2015 20:24:59 +0000
+Subject: [PATCH] leds: bcm6328: Reuse bcm6328_led_set() instead of copying its
+ functionality
+
+When ensuring a consistent initial LED state in bcm6328_led (as they may
+be blinking instead of on/off), the LED register is set using an inverted
+copy of bcm6328_led_set(). To avoid further errors relating to active low
+handling, call this function directly instead.
+
+As bcm6328_led_set() acquires the same spinlock again when updating the
+register, it is called after unlocking.
+
+Signed-off-by: Simon Arlott <simon@fire.lp0.eu>
+Signed-off-by: Jacek Anaszewski <j.anaszewski@samsung.com>
+---
+ drivers/leds/leds-bcm6328.c | 8 ++------
+ 1 file changed, 2 insertions(+), 6 deletions(-)
+
+--- a/drivers/leds/leds-bcm6328.c
++++ b/drivers/leds/leds-bcm6328.c
+@@ -314,14 +314,10 @@ static int bcm6328_led(struct device *de
+ 	} else {
+ 		led->cdev.brightness = LED_OFF;
+ 	}
+-
+-	if ((led->active_low && led->cdev.brightness == LED_FULL) ||
+-	    (!led->active_low && led->cdev.brightness == LED_OFF))
+-		bcm6328_led_mode(led, BCM6328_LED_MODE_ON);
+-	else
+-		bcm6328_led_mode(led, BCM6328_LED_MODE_OFF);
+ 	spin_unlock_irqrestore(lock, flags);
+ 
++	bcm6328_led_set(&led->cdev, led->cdev.brightness);
++
+ 	led->cdev.brightness_set = bcm6328_led_set;
+ 	led->cdev.blink_set = bcm6328_blink_set;
+ 

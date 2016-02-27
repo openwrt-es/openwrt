@@ -1,0 +1,56 @@
+From c48c89866ffa61cc209828f8daa06f4f6380028e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=C3=81lvaro=20Fern=C3=A1ndez=20Rojas?= <noltari@gmail.com>
+Date: Tue, 15 Dec 2015 21:03:52 +0100
+Subject: [PATCH] leds: bcm6358: merge bcm6358_led_mode and bcm6358_led_set
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+bcm6358_led_mode is now only called by bcm6358_led_set, so merge both
+in one single function.
+
+Signed-off-by: Álvaro Fernández Rojas <noltari@gmail.com>
+Signed-off-by: Jacek Anaszewski <j.anaszewski@samsung.com>
+---
+ drivers/leds/leds-bcm6358.c | 20 ++++++--------------
+ 1 file changed, 6 insertions(+), 14 deletions(-)
+
+--- a/drivers/leds/leds-bcm6358.c
++++ b/drivers/leds/leds-bcm6358.c
+@@ -76,12 +76,15 @@ static unsigned long bcm6358_led_busy(vo
+ 	return val;
+ }
+ 
+-static void bcm6358_led_mode(struct bcm6358_led *led, unsigned long value)
++static void bcm6358_led_set(struct led_classdev *led_cdev,
++			    enum led_brightness value)
+ {
+-	unsigned long val;
++	struct bcm6358_led *led =
++		container_of(led_cdev, struct bcm6358_led, cdev);
++	unsigned long flags, val;
+ 
++	spin_lock_irqsave(led->lock, flags);
+ 	bcm6358_led_busy(led->mem);
+-
+ 	val = bcm6358_led_read(led->mem + BCM6358_REG_MODE);
+ 	if ((led->active_low && value == LED_OFF) ||
+ 	    (!led->active_low && value != LED_OFF))
+@@ -89,17 +92,6 @@ static void bcm6358_led_mode(struct bcm6
+ 	else
+ 		val &= ~(BIT(led->pin));
+ 	bcm6358_led_write(led->mem + BCM6358_REG_MODE, val);
+-}
+-
+-static void bcm6358_led_set(struct led_classdev *led_cdev,
+-			    enum led_brightness value)
+-{
+-	struct bcm6358_led *led =
+-		container_of(led_cdev, struct bcm6358_led, cdev);
+-	unsigned long flags;
+-
+-	spin_lock_irqsave(led->lock, flags);
+-	bcm6358_led_mode(led, value);
+ 	spin_unlock_irqrestore(led->lock, flags);
+ }
+ 
