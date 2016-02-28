@@ -1,0 +1,15 @@
+--- a/arch/mips/bcm63xx/boards/board_common.c
++++ b/arch/mips/bcm63xx/boards/board_common.c
+@@ -222,6 +222,12 @@ int __init board_register_devices(void)
+ 
+ 		bcm_gpio_writel(val_gpio_mode, GPIO_MODE_REG);
+ 		bcm_gpio_writel(val_gpio_ctl_lo, GPIO_CTL_LO_REG);
++	} else if (of_machine_is_compatible("comtrend,vr-3032u")) {
++		u32 val_gpio_mode = bcm_gpio_readl(GPIO_MODE_REG);
++
++		val_gpio_mode |= BIT(0) | BIT(1); /* Serial LEDs DAT/CLK */
++
++		bcm_gpio_writel(val_gpio_mode, GPIO_MODE_REG);
+ 	}
+ 
+ 	bcm63xx_gpio_init();

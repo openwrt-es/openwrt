@@ -92,7 +92,8 @@ p870hw-51a_v2 |\
 r5010un_v2 |\
 vr-3025un |\
 vr-3025u |\
-vr-3026e)
+vr-3026e |\
+vr-3032u)
 	ucidef_add_switch "switch0" \
 		"0:lan:1" "1:lan:2" "2:lan:3" "3:lan:4" "8t@eth0"
 	;;

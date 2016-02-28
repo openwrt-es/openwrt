@@ -538,6 +538,8 @@ $(eval $(call bcm63xxCfe,VR3025u,VR-3025u,vr-3025u,96368M-1541N,6368,--pad 16 --
 $(eval $(call bcm63xxCfe,VR3025un,VR-3025un,vr-3025un,96368M-1341N,6368,--pad 4))
 # Comtrend VR-3026e
 $(eval $(call bcm63xxCfe,VR3026e,VR-3026e,vr-3026e,96368MT-1341N1,6368,--pad 4))
+# Comtrend VR-3032u
+$(eval $(call bcm63xxCfeRamdisk,VR3032u,VR-3032u,vr-3032u,963168M-1841N1,63268))
 # Comtrend WAP-5813n
 $(eval $(call bcm63xxCfe,WAP5813n,WAP-5813n,wap-5813n,96369R-1231N,6368,--pad 4))
 # D-Link DSL-2640B, rev B2
