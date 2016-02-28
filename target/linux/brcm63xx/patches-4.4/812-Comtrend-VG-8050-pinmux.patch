@@ -1,0 +1,16 @@
+--- a/arch/mips/bcm63xx/boards/board_common.c
++++ b/arch/mips/bcm63xx/boards/board_common.c
+@@ -228,6 +228,13 @@ int __init board_register_devices(void)
+ 		val_gpio_mode |= BIT(0) | BIT(1); /* Serial LEDs DAT/CLK */
+ 
+ 		bcm_gpio_writel(val_gpio_mode, GPIO_MODE_REG);
++	} else if (of_machine_is_compatible("comtrend,vg-8050")) {
++		u32 val_gpio_mode = bcm_gpio_readl(GPIO_MODE_REG);
++
++		val_gpio_mode |= BIT(0) | BIT(1); /* Serial LEDs DAT/CLK */
++		val_gpio_mode |= BIT(17); /* HSSPI CS5 */
++
++		bcm_gpio_writel(val_gpio_mode, GPIO_MODE_REG);
+ 	}
+ 
+ 	bcm63xx_gpio_init();

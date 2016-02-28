@@ -119,7 +119,8 @@ neufbox6)
 		"1:lan" "2:lan" "3:lan" "4:lan" "0:wan" "9t@eth0"
 	;;
 
-vg50)
+vg50 |\
+vg-8050)
 	ucidef_add_switch "switch0" \
 		"0:lan" "1:lan" "2:lan" "3:lan" "4:wan" "8t@eth0"
 	;;

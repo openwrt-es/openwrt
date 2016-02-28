@@ -33,6 +33,9 @@ set_state() {
 	spw303v)
 		status_led="spw303v:green:power+adsl"
 		;;
+	vg-8050)
+		status_led="VG-8050:green:power"
+		;;
 	vr-3025un)
 		status_led="VR-3025un:green:power"
 		;;

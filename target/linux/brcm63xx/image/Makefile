@@ -532,6 +532,8 @@ $(eval $(call bcm63xxCfe,CT536_CT5621,CT536_CT5621,ct536plus,96348GW-11,6348))
 $(eval $(call bcm63xxCfe,CT5365,CT-5365,ct-5365,96348A-122,6348))
 # Comtrend CT-6373
 $(eval $(call bcm63xxCfe,CT6373,CT-6373,ct-6373,CT6373-1,6358))
+# Comtrend VG-8050
+$(eval $(call bcm63xxCfeRamdisk,VG8050,VG-8050,vg-8050,963169P-1861N5,63268))
 # Comtrend VR-3025u
 $(eval $(call bcm63xxCfe,VR3025u,VR-3025u,vr-3025u,96368M-1541N,6368,--pad 16 --image-offset 0x20000 --block-size 0x20000))
 # Comtrend VR-3025un
