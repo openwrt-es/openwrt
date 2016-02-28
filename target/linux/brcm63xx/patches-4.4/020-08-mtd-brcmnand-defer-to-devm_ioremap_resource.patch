@@ -1,0 +1,27 @@
+From 207f6582dd9adb8e2ed64b4c64d6d5c009e5bbf9 Mon Sep 17 00:00:00 2001
+From: Brian Norris <computersforpeace@gmail.com>
+Date: Wed, 9 Dec 2015 18:33:17 -0800
+Subject: [PATCH] mtd: brcmnand: defer to devm_ioremap_resource() for error
+ checking
+
+devm_ioremap_resource() does error checking on the 'res' argument, so
+drop the error check in bcm6368_nand.c.
+
+Signed-off-by: Brian Norris <computersforpeace@gmail.com>
+Tested-by: Simon Arlott <simon@fire.lp0.eu>
+---
+ drivers/mtd/nand/brcmnand/bcm6368_nand.c | 3 ---
+ 1 file changed, 3 deletions(-)
+
+--- a/drivers/mtd/nand/brcmnand/bcm6368_nand.c
++++ b/drivers/mtd/nand/brcmnand/bcm6368_nand.c
+@@ -105,9 +105,6 @@ static int bcm6368_nand_probe(struct pla
+ 
+ 	res = platform_get_resource_byname(pdev,
+ 		IORESOURCE_MEM, "nand-int-base");
+-	if (!res)
+-		return -EINVAL;
+-
+ 	priv->base = devm_ioremap_resource(dev, res);
+ 	if (IS_ERR(priv->base))
+ 		return PTR_ERR(priv->base);

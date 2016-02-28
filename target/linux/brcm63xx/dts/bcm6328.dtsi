@@ -6,6 +6,7 @@
 	aliases {
 		gpio0 = &gpio0;
 		leds0 = &leds0;
+		nflash = &nflash;
 	};
 
 	cpus {
@@ -63,6 +64,19 @@
 
 			gpio-controller;
 			#gpio-cells = <2>;
+		};
+
+		nflash: nand@10000200 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "brcm,nand-bcm6368", "brcm,brcmnand-v4.0", "brcm,brcmnand";
+			reg = <0x10000200 0x180>, <0x10000400 0x200>, <0x100000b0 0x10>;
+			reg-names = "nand", "nand-cache", "nand-int-base";
+
+			interrupt-parent = <&periph_intc>;
+			interrupts = <0>;
+
+			status = "disabled";
 		};
 
 		leds0: led-controller@10000800 {

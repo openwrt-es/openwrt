@@ -1,0 +1,65 @@
+From d618baf94c62eb63b5b7f6159fb6aee5550a2e10 Mon Sep 17 00:00:00 2001
+From: Brian Norris <computersforpeace@gmail.com>
+Date: Mon, 16 Nov 2015 16:56:13 -0800
+Subject: [PATCH] mtd: brcmnand: clean up flash cache for parameter pages
+
+The read_byte() handling for accessing the flash cache has some awkward
+swapping being done in the read_byte() function. Let's just make this a
+byte array, and do the swapping with the word-level macros during the
+initial buffer copy.
+
+This is just a refactoring patch, with no (intended) functional change.
+
+Signed-off-by: Brian Norris <computersforpeace@gmail.com>
+Cc: Clay McClure <clay@daemons.net>
+Cc: Ray Jui <rjui@broadcom.com>
+Cc: Scott Branden <sbranden@broadcom.com>
+Cc: <bcm-kernel-feedback-list@broadcom.com>
+Tested-by: Clay McClure <clay@daemons.net>
+---
+ drivers/mtd/nand/brcmnand/brcmnand.c | 13 +++++++++----
+ 1 file changed, 9 insertions(+), 4 deletions(-)
+
+--- a/drivers/mtd/nand/brcmnand/brcmnand.c
++++ b/drivers/mtd/nand/brcmnand/brcmnand.c
+@@ -134,7 +134,7 @@ struct brcmnand_controller {
+ 	dma_addr_t		dma_pa;
+ 
+ 	/* in-memory cache of the FLASH_CACHE, used only for some commands */
+-	u32			flash_cache[FC_WORDS];
++	u8			flash_cache[FC_BYTES];
+ 
+ 	/* Controller revision details */
+ 	const u16		*reg_offsets;
+@@ -1188,6 +1188,8 @@ static void brcmnand_cmdfunc(struct mtd_
+ 
+ 	if (native_cmd == CMD_PARAMETER_READ ||
+ 			native_cmd == CMD_PARAMETER_CHANGE_COL) {
++		/* Copy flash cache word-wise */
++		u32 *flash_cache = (u32 *)ctrl->flash_cache;
+ 		int i;
+ 
+ 		brcmnand_soc_data_bus_prepare(ctrl->soc);
+@@ -1197,7 +1199,11 @@ static void brcmnand_cmdfunc(struct mtd_
+ 		 * SECTOR_SIZE_1K may invalidate it
+ 		 */
+ 		for (i = 0; i < FC_WORDS; i++)
+-			ctrl->flash_cache[i] = brcmnand_read_fc(ctrl, i);
++			/*
++			 * Flash cache is big endian for parameter pages, at
++			 * least on STB SoCs
++			 */
++			flash_cache[i] = be32_to_cpu(brcmnand_read_fc(ctrl, i));
+ 
+ 		brcmnand_soc_data_bus_unprepare(ctrl->soc);
+ 
+@@ -1250,8 +1256,7 @@ static uint8_t brcmnand_read_byte(struct
+ 		if (host->last_byte > 0 && offs == 0)
+ 			chip->cmdfunc(mtd, NAND_CMD_RNDOUT, addr, -1);
+ 
+-		ret = ctrl->flash_cache[offs >> 2] >>
+-					(24 - ((offs & 0x03) << 3));
++		ret = ctrl->flash_cache[offs];
+ 		break;
+ 	case NAND_CMD_GET_FEATURES:
+ 		if (host->last_byte >= ONFI_SUBFEATURE_PARAM_LEN) {

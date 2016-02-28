@@ -1,0 +1,67 @@
+From 081976bcc0cbc84f5164fb7aa0e5cf597df6de9e Mon Sep 17 00:00:00 2001
+From: Julia Lawall <julia.lawall@lip6.fr>
+Date: Thu, 19 Nov 2015 22:32:15 +0100
+Subject: [PATCH] mtd: brcmnand: improve memory management
+
+This patch addresses two related memory management issues in the probe
+function:
+
+1. for_each_available_child_of_node performs an of_node_get on each
+iteration, so a break out of the loop requires an of_node_put.
+
+A simplified version of the semantic patch that fixes this problem is as
+follows (http://coccinelle.lip6.fr):
+
+// <smpl>
+@@
+expression root,e;
+local idexpression child;
+@@
+
+ for_each_available_child_of_node(root, child) {
+   ... when != of_node_put(child)
+       when != e = child
+(
+   return child;
+|
++  of_node_put(child);
+?  return ...;
+)
+   ...
+ }
+// </smpl>
+
+2. The devm_kzalloc'd data is not used if brcmnand_init_cs fails.  Free it
+immediately, using devm_kfree in this case, instead of waiting for the
+remove function.
+
+Signed-off-by: Julia Lawall <Julia.Lawall@lip6.fr>
+Signed-off-by: Brian Norris <computersforpeace@gmail.com>
+---
+ drivers/mtd/nand/brcmnand/brcmnand.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+--- a/drivers/mtd/nand/brcmnand/brcmnand.c
++++ b/drivers/mtd/nand/brcmnand/brcmnand.c
+@@ -2234,15 +2234,19 @@ int brcmnand_probe(struct platform_devic
+ 			struct brcmnand_host *host;
+ 
+ 			host = devm_kzalloc(dev, sizeof(*host), GFP_KERNEL);
+-			if (!host)
++			if (!host) {
++				of_node_put(child);
+ 				return -ENOMEM;
++			}
+ 			host->pdev = pdev;
+ 			host->ctrl = ctrl;
+ 			host->of_node = child;
+ 
+ 			ret = brcmnand_init_cs(host);
+-			if (ret)
++			if (ret) {
++				devm_kfree(dev, host);
+ 				continue; /* Try all chip-selects */
++			}
+ 
+ 			list_add_tail(&host->node, &ctrl->host_list);
+ 		}
