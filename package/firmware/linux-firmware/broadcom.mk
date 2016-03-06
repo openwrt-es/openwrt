@@ -43,3 +43,12 @@ define Package/brcmsmac-firmware/install
 		$(1)/lib/firmware/brcm/
 endef
 $(eval $(call BuildPackage,brcmsmac-firmware))
+
+Package/brcm43430-firmware = $(call Package/firmware-default,Broadcom BCM43430 firmware files)
+define Package/brcm43430-firmware/install
+	$(INSTALL_DIR) $(1)/lib/firmware
+	$(INSTALL_DATA) \
+		./files/BCM43430A1.hcd \
+		$(1)/lib/firmware/
+endef
+$(eval $(call BuildPackage,brcm43430-firmware))

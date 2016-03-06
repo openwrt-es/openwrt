@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2006-2015 OpenWrt.org
+# Copyright (C) 2006-2016 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -41,6 +41,7 @@ define KernelPackage/bluetooth
 	CONFIG_BLUEZ_HCIUSB \
 	CONFIG_BLUEZ_HIDP \
 	CONFIG_BT \
+	CONFIG_BT_BCM \
 	CONFIG_BT_BREDR=y \
 	CONFIG_BT_DEBUGFS=n \
 	CONFIG_BT_L2CAP=y \
@@ -52,7 +53,8 @@ define KernelPackage/bluetooth
 	CONFIG_BT_HCIBTUSB_BCM=n \
 	CONFIG_BT_HCIUSB \
 	CONFIG_BT_HCIUART \
-	CONFIG_BT_HCIUART_BCM=n \
+	CONFIG_BT_HCIUART_3WIRE=y \
+	CONFIG_BT_HCIUART_BCM=y \
 	CONFIG_BT_HCIUART_INTEL=n \
 	CONFIG_BT_HCIUART_H4 \
 	CONFIG_BT_HIDP \
@@ -64,12 +66,13 @@ define KernelPackage/bluetooth
 	$(LINUX_DIR)/net/bluetooth/bnep/bnep.ko \
 	$(LINUX_DIR)/net/bluetooth/hidp/hidp.ko \
 	$(LINUX_DIR)/drivers/bluetooth/hci_uart.ko \
-	$(LINUX_DIR)/drivers/bluetooth/btusb.ko
+	$(LINUX_DIR)/drivers/bluetooth/btusb.ko \
+	$(LINUX_DIR)/drivers/bluetooth/btbcm.ko
 ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,4.1.0)),1)
   FILES+= \
 	$(LINUX_DIR)/drivers/bluetooth/btintel.ko
 endif
-  AUTOLOAD:=$(call AutoProbe,bluetooth rfcomm bnep hidp hci_uart btusb)
+  AUTOLOAD:=$(call AutoProbe,bluetooth rfcomm bnep hidp hci_uart btusb btbcm)
 endef
 
 define KernelPackage/bluetooth/description

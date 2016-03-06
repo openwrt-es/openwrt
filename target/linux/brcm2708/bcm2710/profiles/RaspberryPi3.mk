@@ -7,6 +7,7 @@
 
 define Profile/RaspberryPi_3
   NAME:=Raspberry Pi 3 Model B
+  PACKAGES:=brcm43430-firmware
 endef
 define Profile/RaspberryPi_3/Description
   Raspberry Pi 3 Model B
