@@ -1,0 +1,94 @@
+/dts-v1/;
+
+#include "bcm6368.dtsi"
+
+/ {
+	compatible = "comtrend,vr-3025un", "brcm,bcm6368";
+	model = "Comtrend VR-3025un";
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x00000000 0x04000000>;
+	};
+
+	chosen {
+		bootargs = "earlycon";
+		stdout-path = "uart0:115200";
+	};
+
+	gpio-keys-polled {
+		compatible = "gpio-keys-polled";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		poll-interval = <20>;
+		debounce-interval = <60>;
+
+		reset {
+			label = "reset";
+			gpios = <&gpio1 2 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RESTART>;
+		};
+	};
+
+	gpio-leds {
+		compatible = "gpio-leds";
+
+		dsl_green {
+			label = "VR-3025un:green:dsl";
+			gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
+		};
+		inet_green {
+			label = "VR-3025un:green:inet";
+			gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;
+		};
+		power_green {
+			label = "VR-3025un:green:power";
+			gpios = <&gpio0 22 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+		power_red {
+			label = "VR-3025un:red:power";
+			gpios = <&gpio0 24 GPIO_ACTIVE_HIGH>;
+		};
+		inet_red {
+			label = "VR-3025un:red:inet";
+			gpios = <&gpio0 31 GPIO_ACTIVE_HIGH>;
+		};
+	};
+};
+
+&ehci0 {
+	status = "ok";
+};
+
+&ohci0 {
+	status = "ok";
+};
+
+&pflash {
+	status = "ok";
+
+	partitions {
+		cfe@0 {
+			label = "cfe";
+			reg = <0x000000 0x010000>;
+			read-only;
+		};
+		linux@10000 {
+			label = "linux";
+			reg = <0x010000 0x7e0000>;
+		};
+		nvram@7f0000 {
+			label = "nvram";
+			reg = <0x7f0000 0x010000>;
+		};
+	};
+};
+
+&uart0 {
+	status = "ok";
+};
+
+&usbh {
+	status = "ok";
+};

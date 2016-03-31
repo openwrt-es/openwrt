@@ -1,0 +1,26 @@
+From 04784e89fc50ed4e837e0808bb00f2a273a8228f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=C3=81lvaro=20Fern=C3=A1ndez=20Rojas?= <noltari@gmail.com>
+Date: Thu, 31 Mar 2016 15:09:07 +0200
+Subject: [PATCH] hwrng: bcm63xx - fix device tree compilation
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Adds missing include that resulted in implicit device tree functions errors.
+
+Fixes: 7b651706712b ("hwrng: bcm63xx - add device tree support")
+Signed-off-by: Álvaro Fernández Rojas <noltari@gmail.com>
+---
+ drivers/char/hw_random/bcm63xx-rng.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+--- a/drivers/char/hw_random/bcm63xx-rng.c
++++ b/drivers/char/hw_random/bcm63xx-rng.c
+@@ -12,6 +12,7 @@
+ #include <linux/clk.h>
+ #include <linux/platform_device.h>
+ #include <linux/hw_random.h>
++#include <linux/of.h>
+ 
+ #define RNG_CTRL			0x00
+ #define RNG_EN				(1 << 0)

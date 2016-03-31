@@ -1,0 +1,231 @@
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	compatible = "brcm,bcm3368";
+
+	aliases {
+		gpio0 = &gpio0;
+		gpio1 = &gpio1;
+		pflash = &pflash;
+		spi0 = &spi0;
+		uart0 = &uart0;
+		uart1 = &uart1;
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		mips-hpt-frequency = <150000000>;
+
+		cpu@0 {
+			compatible = "brcm,bmips4350", "mips,mips4Kc";
+			device_type = "cpu";
+			reg = <0>;
+		};
+		cpu@1 {
+			compatible = "brcm,bmips4350", "mips,mips4Kc";
+			device_type = "cpu";
+			reg = <1>;
+		};
+	};
+
+	clocks {
+		periph_osc: periph_osc {
+			compatible = "fixed-clock";
+
+			#clock-cells = <0>;
+
+			clock-frequency = <50000000>;
+			clock-output-names = "periph";
+		};
+
+		periph_clk: periph_clk {
+			compatible = "brcm,bcm6345-gate-clk";
+			regmap = <&periph_cntl>;
+			offset = <0x4>;
+
+			#clock-cells = <1>;
+
+			clock-indices = <9>;
+			clock-output-names = "spi";
+
+			/*
+			 3: mac
+			 5: tc
+			 6: us_top
+			 7: ds_top
+			 8: apm
+			 9: spi
+			 10: usbs
+			 11: bmu
+			 12: pcm
+			 13: ntp
+			 14: acp_b
+			 15: acp_a
+			 17: emusb
+			 18: enet0
+			 19: enet1
+			 20: usbu
+			 21: ephy
+			*/
+		};
+	};
+
+	cpu_intc: cpu_intc {
+		#address-cells = <0>;
+		compatible = "mti,cpu-interrupt-controller";
+
+		interrupt-controller;
+		#interrupt-cells = <1>;
+	};
+
+	pflash: nor@1e000000 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "cfi-flash";
+		reg = <0x1e000000 0x2000000>;
+		bank-width = <2>;
+
+		status = "disabled";
+	};
+
+	ubus {
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		compatible = "simple-bus";
+		ranges;
+
+		periph_cntl: syscon@fff8c000 {
+			compatible = "syscon";
+			reg = <0xfff8c000 0xc>;
+			little-endian;
+		};
+
+		reboot: syscon-reboot@fff8c008 {
+			compatible = "syscon-reboot";
+			regmap = <&periph_cntl>;
+			offset = <0x8>;
+			mask = <0x1>;
+		};
+
+		periph_intc: interrupt-controller@fff8c00c {
+			compatible = "brcm,bcm6345-l1-intc";
+			reg = <0xfff8c00c 0x8>;
+
+			interrupt-controller;
+			#interrupt-cells = <1>;
+
+			interrupt-parent = <&cpu_intc>;
+			interrupts = <2>;
+		};
+
+		soft_rst_cntl: syscon@fff8c034 {
+			compatible = "syscon";
+			reg = <0xfff8c034 0x4>;
+			little-endian;
+		};
+
+		periph_soft_rst: reset-controller@fff8c034 {
+			compatible = "brcm,bcm6345-reset";
+			regmap = <&soft_rst_cntl>;
+			offset = <0>;
+
+			#reset-cells = <1>;
+
+			/*
+			 0: spi
+			 2: enet
+			 3: mpi
+			 6: ephy
+			 11: usbs
+			 13: pcm
+			*/
+		};
+
+		timer: timer-controller@fff8c040 {
+			compatible = "brcm,bcm6345-timer";
+			reg = <0xfff8c040 0x1c>;
+
+			interrupt-controller;
+			#interrupt-cells = <1>;
+
+			interrupt-parent = <&periph_intc>;
+			interrupts = <0>;
+
+			clock = <&periph_osc>;
+		};
+
+		wdt: watchdog@fff8c080 {
+			compatible = "brcm,bcm6345-wdt";
+			reg = <0xfff8c080 0xc>;
+
+			interrupt-parent = <&timer>;
+			interrupts = <3>;
+
+			clocks = <&periph_osc>;
+		};
+
+		gpio1: gpio-controller@fff8c080 {
+			compatible = "brcm,bcm6345-gpio";
+			reg = <0xfff8c080 0x4>, <0xfff8c088 0x4>;
+
+			gpio-controller;
+			#gpio-cells = <2>;
+
+			ngpios = <8>;
+		};
+
+		gpio0: gpio-controller@fff8c084 {
+			compatible = "brcm,bcm6345-gpio";
+			reg = <0xfff8c084 0x4>, <0xfff8c08c 0x4>;
+
+			gpio-controller;
+			#gpio-cells = <2>;
+		};
+
+		uart0: serial@fff8c100 {
+			compatible = "brcm,bcm6345-uart";
+			reg = <0xfff8c100 0x18>;
+
+			interrupt-parent = <&periph_intc>;
+			interrupts = <2>;
+
+			clocks = <&periph_osc>;
+
+			status = "disabled";
+		};
+
+		uart1: serial@fff8c120 {
+			compatible = "brcm,bcm6345-uart";
+			reg = <0xfff8c120 0x18>;
+
+			interrupt-parent = <&periph_intc>;
+			interrupts = <3>;
+
+			clocks = <&periph_osc>;
+
+			status = "disabled";
+		};
+
+		spi0: spi@fff8c800 {
+			compatible = "brcm,bcm6358-spi";
+			reg = <0xfff8c800 0x70c>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			interrupt-parent = <&periph_intc>;
+			interrupts = <1>;
+
+			clocks = <&periph_clk 9>;
+			clock-names = "spi";
+
+			resets = <&periph_soft_rst 0>;
+
+			status = "disabled";
+		};
+	};
+};

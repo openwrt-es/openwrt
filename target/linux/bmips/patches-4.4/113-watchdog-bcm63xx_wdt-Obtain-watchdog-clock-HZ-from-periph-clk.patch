@@ -1,0 +1,106 @@
+--- a/drivers/watchdog/bcm63xx_wdt.c
++++ b/drivers/watchdog/bcm63xx_wdt.c
+@@ -13,6 +13,7 @@
+ 
+ #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+ 
++#include <linux/clk.h>
+ #include <linux/errno.h>
+ #include <linux/io.h>
+ #include <linux/kernel.h>
+@@ -32,12 +33,14 @@
+ 
+ #define PFX KBUILD_MODNAME
+ 
+-#define WDT_HZ			50000000		/* Fclk */
++#define WDT_CLK_NAME		"periph"
+ 
+ struct bcm63xx_wdt_hw {
+ 	struct watchdog_device wdd;
+ 	raw_spinlock_t lock;
+ 	void __iomem *regs;
++	struct clk *clk;
++	unsigned long clock_hz;
+ 	bool running;
+ };
+ 
+@@ -54,7 +57,7 @@ static int bcm63xx_wdt_start(struct watc
+ 	unsigned long flags;
+ 
+ 	raw_spin_lock_irqsave(&hw->lock, flags);
+-	bcm_writel(wdd->timeout * WDT_HZ, hw->regs + WDT_DEFVAL_REG);
++	bcm_writel(wdd->timeout * hw->clock_hz, hw->regs + WDT_DEFVAL_REG);
+ 	bcm_writel(WDT_START_1, hw->regs + WDT_CTL_REG);
+ 	bcm_writel(WDT_START_2, hw->regs + WDT_CTL_REG);
+ 	hw->running = true;
+@@ -118,7 +121,7 @@ static void bcm63xx_wdt_isr(void *data)
+ 			die(PFX ": watchdog timer expired\n", get_irq_regs());
+ 		}
+ 
+-		ms = timeleft / (WDT_HZ / 1000);
++		ms = timeleft / (hw->clock_hz / 1000);
+ 		dev_alert(hw->wdd.dev,
+ 			"warning timer fired, reboot in %ums\n", ms);
+ 	}
+@@ -162,6 +165,25 @@ static int bcm63xx_wdt_probe(struct plat
+ 		return -ENXIO;
+ 	}
+ 
++	hw->clk = devm_clk_get(&pdev->dev, WDT_CLK_NAME);
++	if (IS_ERR(hw->clk)) {
++		if (PTR_ERR(hw->clk) != -EPROBE_DEFER)
++			dev_err(&pdev->dev, "unable to request clock\n");
++		return PTR_ERR(hw->clk);
++	}
++
++	hw->clock_hz = clk_get_rate(hw->clk);
++	if (!hw->clock_hz) {
++		dev_err(&pdev->dev, "unable to fetch clock rate\n");
++		return -EINVAL;
++	}
++
++	ret = clk_prepare_enable(hw->clk);
++	if (ret) {
++		dev_err(&pdev->dev, "unable to enable clock\n");
++		return ret;
++	}
++
+ 	raw_spin_lock_init(&hw->lock);
+ 	hw->running = false;
+ 
+@@ -169,7 +191,7 @@ static int bcm63xx_wdt_probe(struct plat
+ 	wdd->ops = &bcm63xx_wdt_ops;
+ 	wdd->info = &bcm63xx_wdt_info;
+ 	wdd->min_timeout = 1;
+-	wdd->max_timeout = 0xffffffff / WDT_HZ;
++	wdd->max_timeout = 0xffffffff / hw->clock_hz;
+ 	wdd->timeout = min(30U, wdd->max_timeout);
+ 
+ 	platform_set_drvdata(pdev, hw);
+@@ -180,7 +202,7 @@ static int bcm63xx_wdt_probe(struct plat
+ 	ret = watchdog_register_device(wdd);
+ 	if (ret < 0) {
+ 		dev_err(&pdev->dev, "failed to register watchdog device\n");
+-		return ret;
++		goto disable_clk;
+ 	}
+ 
+ 	ret = bcm63xx_timer_register(TIMER_WDT_ID, bcm63xx_wdt_isr, hw);
+@@ -198,6 +220,9 @@ static int bcm63xx_wdt_probe(struct plat
+ 
+ unregister_watchdog:
+ 	watchdog_unregister_device(wdd);
++
++disable_clk:
++	clk_disable_unprepare(hw->clk);
+ 	return ret;
+ }
+ 
+@@ -207,6 +232,7 @@ static int bcm63xx_wdt_remove(struct pla
+ 
+ 	bcm63xx_timer_unregister(TIMER_WDT_ID);
+ 	watchdog_unregister_device(&hw->wdd);
++	clk_disable_unprepare(hw->clk);
+ 	return 0;
+ }
+ 

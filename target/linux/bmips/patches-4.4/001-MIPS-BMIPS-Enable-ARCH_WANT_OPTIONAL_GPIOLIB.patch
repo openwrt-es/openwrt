@@ -1,0 +1,36 @@
+From a7b43812ae5ec90afde8ed540b1a92405a54a519 Mon Sep 17 00:00:00 2001
+From: Florian Fainelli <f.fainelli@gmail.com>
+Date: Wed, 6 Jan 2016 10:51:05 -0800
+Subject: [PATCH] MIPS: BMIPS: Enable ARCH_WANT_OPTIONAL_GPIOLIB
+
+Allow BMIPS_GENERIC supported platforms to build GPIO controller
+drivers.
+
+Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
+Reviewed-by: Dragan Stancevic <dragan.stancevic@gmail.com>
+Cc: cernekee@gmail.com
+Cc: jaedon.shin@gmail.com
+Cc: gregory.0xf0@gmail.com
+Cc: Florian Fainelli <f.fainelli@gmail.com>
+Cc: linux-mips@linux-mips.org
+Patchwork: https://patchwork.linux-mips.org/patch/12019/
+Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+---
+ arch/mips/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index 5001100..058dfd2 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -170,6 +170,7 @@ config BMIPS_GENERIC
+ 	select USB_EHCI_BIG_ENDIAN_MMIO if CPU_BIG_ENDIAN
+ 	select USB_OHCI_BIG_ENDIAN_DESC if CPU_BIG_ENDIAN
+ 	select USB_OHCI_BIG_ENDIAN_MMIO if CPU_BIG_ENDIAN
++	select ARCH_WANT_OPTIONAL_GPIOLIB
+ 	help
+ 	  Build a generic DT-based kernel image that boots on select
+ 	  BCM33xx cable modem chips, BCM63xx DSL chips, and BCM7xxx set-top
+-- 
+2.1.4
+

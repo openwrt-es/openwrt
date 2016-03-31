@@ -1,0 +1,153 @@
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	compatible = "brcm,bcm6345";
+
+	aliases {
+		gpio0 = &gpio0;
+		pflash = &pflash;
+		uart0 = &uart0;
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		mips-hpt-frequency = <70000000>;
+
+		cpu@0 {
+			compatible = "brcm,bmips32", "mips,mips4Kc";
+			device_type = "cpu";
+			reg = <0>;
+		};
+	};
+
+	clocks {
+		periph_osc: periph_osc {
+			compatible = "fixed-clock";
+
+			#clock-cells = <0>;
+
+			clock-frequency = <50000000>;
+			clock-output-names = "periph";
+		};
+
+		periph_clk: periph_clk {
+			compatible = "brcm,bcm6345-gate-clk";
+			regmap = <&periph_cntl>;
+			offset = <0x4>;
+
+			#clock-cells = <1>;
+
+			clock-indices = <24>;
+			clock-output-names = "usbh";
+
+			/*
+			 16: cpu
+			 17: bus
+			 18: ebi
+			 19: uart
+			 20: adsl_phy
+			 23: enet
+			 24: usbh
+			*/
+		};
+	};
+
+	cpu_intc: cpu_intc {
+		#address-cells = <0>;
+		compatible = "mti,cpu-interrupt-controller";
+
+		interrupt-controller;
+		#interrupt-cells = <1>;
+	};
+
+	pflash: nor@1fc00000 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "cfi-flash";
+		reg = <0x1fc00000 0x400000>;
+		bank-width = <2>;
+
+		status = "disabled";
+	};
+
+	ubus {
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		compatible = "simple-bus";
+		ranges;
+
+		periph_cntl: syscon@fffe0000 {
+			compatible = "syscon";
+			reg = <0xfffe0000 0xc>;
+			little-endian;
+		};
+
+		reboot: syscon-reboot@fffe0008 {
+			compatible = "syscon-reboot";
+			regmap = <&periph_cntl>;
+			offset = <0x8>;
+			mask = <0x1>;
+		};
+
+		periph_intc: interrupt-controller@fffe000c {
+			compatible = "brcm,bcm6345-l1-intc";
+			reg = <0xfffe000c 0x8>;
+
+			interrupt-controller;
+			#interrupt-cells = <1>;
+
+			interrupt-parent = <&cpu_intc>;
+			interrupts = <2>;
+		};
+
+		timer: timer-controller@fffe0200 {
+			compatible = "brcm,bcm6345-timer";
+			reg = <0xfffe0200 0x1c>;
+
+			interrupt-controller;
+			#interrupt-cells = <1>;
+
+			interrupt-parent = <&periph_intc>;
+			interrupts = <0>;
+
+			clock = <&periph_osc>;
+		};
+
+		wdt: watchdog@fffe021c {
+			compatible = "brcm,bcm6345-wdt";
+			reg = <0xfffe021c 0xc>;
+
+			interrupt-parent = <&timer>;
+			interrupts = <3>;
+
+			clocks = <&periph_osc>;
+		};
+
+		uart0: serial@fffe0300 {
+			compatible = "brcm,bcm6345-uart";
+			reg = <0xfffe0300 0x18>;
+
+			interrupt-parent = <&periph_intc>;
+			interrupts = <2>;
+
+			clocks = <&periph_osc>;
+
+			status = "disabled";
+		};
+
+		gpio0: gpio-controller@fffe0404 {
+			compatible = "brcm,bcm6345-gpio";
+			reg = <0xfffe0404 0x4>, <0xfffe0408 0x4>;
+
+			gpio-controller;
+			#gpio-cells = <2>;
+
+			ngpios = <16>;
+		};
+	};
+};

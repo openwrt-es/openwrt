@@ -1,0 +1,42 @@
+From 064f462632c2294f9b7fb51a7697392fedeea12e Mon Sep 17 00:00:00 2001
+From: Brian Norris <computersforpeace@gmail.com>
+Date: Mon, 16 Nov 2015 17:04:08 -0800
+Subject: [PATCH] mtd: brcmnand: drop unused subpage_read() support
+
+AFAIR this driver was never tested with subpage read support, and this
+code is currently unused because we don't set the NAND_SUBPAGE_READ
+flag. It can be resurrected if someone tests it properly.
+
+Signed-off-by: Brian Norris <computersforpeace@gmail.com>
+Tested-by: Ray Jui <rjui@broadcom.com>
+---
+ drivers/mtd/nand/brcmnand/brcmnand.c | 11 -----------
+ 1 file changed, 11 deletions(-)
+
+--- a/drivers/mtd/nand/brcmnand/brcmnand.c
++++ b/drivers/mtd/nand/brcmnand/brcmnand.c
+@@ -1551,16 +1551,6 @@ static int brcmnand_read_oob_raw(struct
+ 	return 0;
+ }
+ 
+-static int brcmnand_read_subpage(struct mtd_info *mtd, struct nand_chip *chip,
+-				 uint32_t data_offs, uint32_t readlen,
+-				 uint8_t *bufpoi, int page)
+-{
+-	struct brcmnand_host *host = chip->priv;
+-
+-	return brcmnand_read(mtd, chip, host->last_addr + data_offs,
+-			readlen >> FC_SHIFT, (u32 *)bufpoi, NULL);
+-}
+-
+ static int brcmnand_write(struct mtd_info *mtd, struct nand_chip *chip,
+ 			  u64 addr, const u32 *buf, u8 *oob)
+ {
+@@ -1950,7 +1940,6 @@ static int brcmnand_init_cs(struct brcmn
+ 
+ 	chip->ecc.mode = NAND_ECC_HW;
+ 	chip->ecc.read_page = brcmnand_read_page;
+-	chip->ecc.read_subpage = brcmnand_read_subpage;
+ 	chip->ecc.write_page = brcmnand_write_page;
+ 	chip->ecc.read_page_raw = brcmnand_read_page_raw;
+ 	chip->ecc.write_page_raw = brcmnand_write_page_raw;

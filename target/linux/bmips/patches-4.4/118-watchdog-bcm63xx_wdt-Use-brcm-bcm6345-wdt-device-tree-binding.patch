@@ -1,0 +1,56 @@
+--- a/drivers/watchdog/Kconfig
++++ b/drivers/watchdog/Kconfig
+@@ -1281,8 +1281,9 @@ config OCTEON_WDT
+ 
+ config BCM63XX_WDT
+ 	tristate "Broadcom BCM63xx hardware watchdog"
+-	depends on BCM63XX
++	depends on BCM63XX || BMIPS_GENERIC
+ 	select WATCHDOG_CORE
++	select BCM6345_L2_TIMER_IRQ if BMIPS_GENERIC
+ 	help
+ 	  Watchdog driver for the built in watchdog hardware in Broadcom
+ 	  BCM63xx SoC.
+--- a/drivers/watchdog/bcm63xx_wdt.c
++++ b/drivers/watchdog/bcm63xx_wdt.c
+@@ -22,6 +22,7 @@
+ #include <linux/kernel.h>
+ #include <linux/module.h>
+ #include <linux/moduleparam.h>
++#include <linux/mod_devicetable.h>
+ #include <linux/spinlock.h>
+ #include <linux/types.h>
+ #include <linux/watchdog.h>
+@@ -31,7 +32,11 @@
+ 
+ #define PFX KBUILD_MODNAME
+ 
+-#define WDT_CLK_NAME		"periph"
++#ifdef CONFIG_BCM63XX
++# define WDT_CLK_NAME		"periph"
++#else
++# define WDT_CLK_NAME		NULL
++#endif
+ 
+ struct bcm63xx_wdt_hw {
+ 	struct watchdog_device wdd;
+@@ -286,12 +291,19 @@ static void bcm63xx_wdt_shutdown(struct
+ 	bcm63xx_wdt_stop(&hw->wdd);
+ }
+ 
++static const struct of_device_id bcm63xx_wdt_dt_ids[] = {
++	{ .compatible = "brcm,bcm6345-wdt" },
++	{}
++};
++MODULE_DEVICE_TABLE(of, bcm63xx_wdt_dt_ids);
++
+ static struct platform_driver bcm63xx_wdt_driver = {
+ 	.probe	= bcm63xx_wdt_probe,
+ 	.remove = bcm63xx_wdt_remove,
+ 	.shutdown = bcm63xx_wdt_shutdown,
+ 	.driver = {
+ 		.name = "bcm63xx-wdt",
++		.of_match_table = bcm63xx_wdt_dt_ids,
+ 	}
+ };
+ 

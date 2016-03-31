@@ -1,0 +1,99 @@
+/dts-v1/;
+
+#include "bcm6328.dtsi"
+
+/ {
+	compatible = "comtrend,ar-5381u", "brcm,bcm6328";
+	model = "Comtrend AR-5381u";
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x00000000 0x04000000>;
+	};
+
+	chosen {
+		bootargs = "earlycon";
+		stdout-path = "uart0:115200";
+	};
+
+	gpio-keys-polled {
+		compatible = "gpio-keys-polled";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		poll-interval = <20>;
+		debounce-interval = <60>;
+
+		reset {
+			label = "reset";
+			gpios = <&gpio0 23 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RESTART>;
+		};
+	};
+};
+
+&ehci0 {
+	status = "ok";
+};
+
+&leds0 {
+	status = "ok";
+
+	alarm_red@2 {
+		reg = <2>;
+		active-low;
+		label = "AR-5381u:red:alarm";
+	};
+	inet_green@3 {
+		reg = <3>;
+		active-low;
+		label = "AR-5381u:green:inet";
+	};
+	power_green@4 {
+		reg = <4>;
+		active-low;
+		label = "AR-5381u:green:power";
+		default-state = "on";
+	};
+};
+
+&ohci0 {
+	status = "ok";
+};
+
+&spi0 {
+	status = "okay";
+
+	m25p80@0 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <16666667>;
+
+		partitions {
+			cfe@0 {
+				label = "CFE";
+				reg = <0x000000 0x010000>;
+				read-only;
+			};
+			linux@10000 {
+				label = "linux";
+				reg = <0x010000 0xfe0000>;
+				read-only;
+			};
+			nvram@ff0000 {
+				label = "nvram";
+				reg = <0xff0000 0x010000>;
+				read-only;
+			};
+		};
+	};
+};
+
+&uart0 {
+	status = "ok";
+};
+
+&usbh {
+	status = "ok";
+};

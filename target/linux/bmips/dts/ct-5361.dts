@@ -1,0 +1,50 @@
+/dts-v1/;
+
+#include "bcm6348.dtsi"
+
+/ {
+	model = "Comtrend CT-5361";
+	compatible = "comtrend,ct5361", "brcm,bcm6348";
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x00000000 0x01000000>;
+	};
+
+	chosen {
+		bootargs = "earlycon";
+		stdout-path = "uart0:115200";
+	};
+
+	gpio-keys-polled {
+		compatible = "gpio-keys-polled";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		poll-interval = <20>;
+		debounce-interval = <60>;
+
+		reset {
+			label = "reset";
+			gpios = <&gpio1 1 1>;
+			linux,code = <KEY_RESTART>;
+		};
+	};
+
+	gpio-leds {
+		compatible = "gpio-leds";
+
+		power_green {
+			label = "CT5361:green:power";
+			gpios = <&gpio0 0 1>;
+			default-state = "on";
+		};
+		adsl_fail_green {
+			label = "CT5361:green:adsl-fail";
+			gpios = <&gpio0 2 1>;
+		};
+	};
+};
+
+&uart0 {
+	status = "ok";
+};

@@ -1,0 +1,43 @@
+From 535d28f143e4eadb8f675885f29f7564dce5acab Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=C3=81lvaro=20Fern=C3=A1ndez=20Rojas?= <noltari@gmail.com>
+Date: Tue, 15 Dec 2015 21:03:46 +0100
+Subject: [PATCH] leds: bcm6328: remove unneded lock when checking initial LED
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This lock isn't really needed, since we're only reading the register and
+changes made to other LEDs aren't relevant.
+
+Signed-off-by: Álvaro Fernández Rojas <noltari@gmail.com>
+Signed-off-by: Jacek Anaszewski <j.anaszewski@samsung.com>
+---
+ drivers/leds/leds-bcm6328.c | 3 ---
+ 1 file changed, 3 deletions(-)
+
+--- a/drivers/leds/leds-bcm6328.c
++++ b/drivers/leds/leds-bcm6328.c
+@@ -264,7 +264,6 @@ static int bcm6328_led(struct device *de
+ 		       unsigned long *blink_leds, unsigned long *blink_delay)
+ {
+ 	struct bcm6328_led *led;
+-	unsigned long flags;
+ 	const char *state;
+ 	int rc;
+ 
+@@ -286,7 +285,6 @@ static int bcm6328_led(struct device *de
+ 						    "linux,default-trigger",
+ 						    NULL);
+ 
+-	spin_lock_irqsave(lock, flags);
+ 	if (!of_property_read_string(nc, "default-state", &state)) {
+ 		if (!strcmp(state, "on")) {
+ 			led->cdev.brightness = LED_FULL;
+@@ -314,7 +312,6 @@ static int bcm6328_led(struct device *de
+ 	} else {
+ 		led->cdev.brightness = LED_OFF;
+ 	}
+-	spin_unlock_irqrestore(lock, flags);
+ 
+ 	bcm6328_led_set(&led->cdev, led->cdev.brightness);
+ 

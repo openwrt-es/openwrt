@@ -1,0 +1,156 @@
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -2377,6 +2377,7 @@ F:	arch/mips/boot/dts/brcm/bcm*.dts*
+ F:	drivers/irqchip/irq-bcm63*
+ F:	drivers/irqchip/irq-bcm7*
+ F:	drivers/irqchip/irq-brcmstb*
++F:	include/linux/bcm63xx_wdt.h
+ 
+ BROADCOM TG3 GIGABIT ETHERNET DRIVER
+ M:	Prashant Sreedharan <prashant@broadcom.com>
+--- a/arch/mips/bcm63xx/prom.c
++++ b/arch/mips/bcm63xx/prom.c
+@@ -6,6 +6,7 @@
+  * Copyright (C) 2008 Maxime Bizon <mbizon@freebox.fr>
+  */
+ 
++#include <linux/bcm63xx_wdt.h>
+ #include <linux/init.h>
+ #include <linux/bootmem.h>
+ #include <linux/smp.h>
+--- a/arch/mips/bcm63xx/setup.c
++++ b/arch/mips/bcm63xx/setup.c
+@@ -6,6 +6,7 @@
+  * Copyright (C) 2008 Maxime Bizon <mbizon@freebox.fr>
+  */
+ 
++#include <linux/bcm63xx_wdt.h>
+ #include <linux/init.h>
+ #include <linux/kernel.h>
+ #include <linux/delay.h>
+--- a/arch/mips/include/asm/mach-bcm63xx/bcm63xx_regs.h
++++ b/arch/mips/include/asm/mach-bcm63xx/bcm63xx_regs.h
+@@ -441,28 +441,6 @@
+ 
+ 
+ /*************************************************************************
+- * _REG relative to RSET_WDT
+- *************************************************************************/
+-
+-/* Watchdog default count register */
+-#define WDT_DEFVAL_REG			0x0
+-
+-/* Watchdog control register */
+-#define WDT_CTL_REG			0x4
+-
+-/* Watchdog control register constants */
+-#define WDT_START_1			(0xff00)
+-#define WDT_START_2			(0x00ff)
+-#define WDT_STOP_1			(0xee00)
+-#define WDT_STOP_2			(0x00ee)
+-
+-/* Watchdog reset length register */
+-#define WDT_RSTLEN_REG			0x8
+-
+-/* Watchdog soft reset register (BCM6328 only) */
+-#define WDT_SOFTRESET_REG		0xc
+-
+-/*************************************************************************
+  * _REG relative to RSET_GPIO
+  *************************************************************************/
+ 
+--- a/drivers/watchdog/bcm63xx_wdt.c
++++ b/drivers/watchdog/bcm63xx_wdt.c
+@@ -13,6 +13,7 @@
+ 
+ #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+ 
++#include <linux/bcm63xx_wdt.h>
+ #include <linux/clk.h>
+ #include <linux/delay.h>
+ #include <linux/errno.h>
+@@ -27,8 +28,6 @@
+ #include <linux/resource.h>
+ #include <linux/platform_device.h>
+ 
+-#include <bcm63xx_cpu.h>
+-#include <bcm63xx_io.h>
+ #include <bcm63xx_regs.h>
+ #include <bcm63xx_timer.h>
+ 
+@@ -58,9 +57,9 @@ static int bcm63xx_wdt_start(struct watc
+ 	unsigned long flags;
+ 
+ 	raw_spin_lock_irqsave(&hw->lock, flags);
+-	bcm_writel(wdd->timeout * hw->clock_hz, hw->regs + WDT_DEFVAL_REG);
+-	bcm_writel(WDT_START_1, hw->regs + WDT_CTL_REG);
+-	bcm_writel(WDT_START_2, hw->regs + WDT_CTL_REG);
++	__raw_writel(wdd->timeout * hw->clock_hz, hw->regs + WDT_DEFVAL_REG);
++	__raw_writel(WDT_START_1, hw->regs + WDT_CTL_REG);
++	__raw_writel(WDT_START_2, hw->regs + WDT_CTL_REG);
+ 	hw->running = true;
+ 	raw_spin_unlock_irqrestore(&hw->lock, flags);
+ 	return 0;
+@@ -72,8 +71,8 @@ static int bcm63xx_wdt_stop(struct watch
+ 	unsigned long flags;
+ 
+ 	raw_spin_lock_irqsave(&hw->lock, flags);
+-	bcm_writel(WDT_STOP_1, hw->regs + WDT_CTL_REG);
+-	bcm_writel(WDT_STOP_2, hw->regs + WDT_CTL_REG);
++	__raw_writel(WDT_STOP_1, hw->regs + WDT_CTL_REG);
++	__raw_writel(WDT_STOP_2, hw->regs + WDT_CTL_REG);
+ 	hw->running = false;
+ 	raw_spin_unlock_irqrestore(&hw->lock, flags);
+ 	return 0;
+@@ -108,10 +107,10 @@ static void bcm63xx_wdt_isr(void *data)
+ 	raw_spin_lock_irqsave(&hw->lock, flags);
+ 	if (!hw->running) {
+ 		/* Stop the watchdog as it shouldn't be running */
+-		bcm_writel(WDT_STOP_1, hw->regs + WDT_CTL_REG);
+-		bcm_writel(WDT_STOP_2, hw->regs + WDT_CTL_REG);
++		__raw_writel(WDT_STOP_1, hw->regs + WDT_CTL_REG);
++		__raw_writel(WDT_STOP_2, hw->regs + WDT_CTL_REG);
+ 	} else {
+-		u32 timeleft = bcm_readl(hw->regs + WDT_CTL_REG);
++		u32 timeleft = __raw_readl(hw->regs + WDT_CTL_REG);
+ 		u32 ms;
+ 
+ 		if (timeleft >= 2) {
+@@ -125,9 +124,9 @@ static void bcm63xx_wdt_isr(void *data)
+ 			 * This is done with a lock held in case userspace is
+ 			 * trying to restart the watchdog on another CPU.
+ 			 */
+-			bcm_writel(timeleft, hw->regs + WDT_DEFVAL_REG);
+-			bcm_writel(WDT_START_1, hw->regs + WDT_CTL_REG);
+-			bcm_writel(WDT_START_2, hw->regs + WDT_CTL_REG);
++			__raw_writel(timeleft, hw->regs + WDT_DEFVAL_REG);
++			__raw_writel(WDT_START_1, hw->regs + WDT_CTL_REG);
++			__raw_writel(WDT_START_2, hw->regs + WDT_CTL_REG);
+ 		} else {
+ 			/* The watchdog cannot be started with a time of less
+ 			 * than 2 ticks (it won't fire).
+--- /dev/null
++++ b/include/linux/bcm63xx_wdt.h
+@@ -0,0 +1,22 @@
++#ifndef LINUX_BCM63XX_WDT_H_
++#define LINUX_BCM63XX_WDT_H_
++
++/* Watchdog default count register */
++#define WDT_DEFVAL_REG                  0x0
++
++/* Watchdog control register */
++#define WDT_CTL_REG                     0x4
++
++/* Watchdog control register constants */
++#define WDT_START_1                     (0xff00)
++#define WDT_START_2                     (0x00ff)
++#define WDT_STOP_1                      (0xee00)
++#define WDT_STOP_2                      (0x00ee)
++
++/* Watchdog reset length register */
++#define WDT_RSTLEN_REG                  0x8
++
++/* Watchdog soft reset register (BCM6328 only) */
++#define WDT_SOFTRESET_REG               0xc
++
++#endif

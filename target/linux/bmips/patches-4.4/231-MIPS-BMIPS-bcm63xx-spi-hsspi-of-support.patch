@@ -1,0 +1,216 @@
+--- a/drivers/spi/Kconfig
++++ b/drivers/spi/Kconfig
+@@ -136,13 +136,13 @@ config SPI_BCM53XX
+ 
+ config SPI_BCM63XX
+ 	tristate "Broadcom BCM63xx SPI controller"
+-	depends on BCM63XX || COMPILE_TEST
++	depends on BCM63XX || BMIPS_GENERIC || COMPILE_TEST
+ 	help
+           Enable support for the SPI controller on the Broadcom BCM63xx SoCs.
+ 
+ config SPI_BCM63XX_HSSPI
+ 	tristate "Broadcom BCM63XX HS SPI controller driver"
+-	depends on BCM63XX || COMPILE_TEST
++	depends on BCM63XX || BMIPS_GENERIC || COMPILE_TEST
+ 	help
+ 	  This enables support for the High Speed SPI controller present on
+ 	  newer Broadcom BCM63XX SoCs.
+--- a/drivers/spi/spi-bcm63xx.c
++++ b/drivers/spi/spi-bcm63xx.c
+@@ -26,6 +26,9 @@
+ #include <linux/completion.h>
+ #include <linux/err.h>
+ #include <linux/pm_runtime.h>
++#include <linux/of.h>
++#include <linux/of_device.h>
++#include <linux/reset.h>
+ 
+ /* BCM 6338/6348 SPI core */
+ #define SPI_6348_RSET_SIZE		64
+@@ -488,12 +491,12 @@ static int bcm63xx_spi_probe(struct plat
+ 	struct clk *clk;
+ 	struct bcm63xx_spi *bs;
+ 	int ret;
++	struct reset_control *reset;
+ 
+-	if (!pdev->id_entry->driver_data)
++	bcm63xx_spireg = of_device_get_match_data(dev);
++	if (!bcm63xx_spireg)
+ 		return -EINVAL;
+ 
+-	bcm63xx_spireg = (const unsigned long *)pdev->id_entry->driver_data;
+-
+ 	irq = platform_get_irq(pdev, 0);
+ 	if (irq < 0) {
+ 		dev_err(dev, "no irq\n");
+@@ -506,6 +509,15 @@ static int bcm63xx_spi_probe(struct plat
+ 		return PTR_ERR(clk);
+ 	}
+ 
++	reset = devm_reset_control_get(dev, NULL);
++	if (IS_ERR(reset)) {
++		ret = PTR_ERR(reset);
++		if (ret != -EPROBE_DEFER)
++			dev_err(dev,
++				"failed to get reset controller: %d\n", ret);
++		return ret;
++	}
++
+ 	master = spi_alloc_master(dev, sizeof(*bs));
+ 	if (!master) {
+ 		dev_err(dev, "out of memory\n");
+@@ -537,12 +549,12 @@ static int bcm63xx_spi_probe(struct plat
+ 		goto out_err;
+ 	}
+ 
++	master->dev.of_node = pdev->dev.of_node;
+ 	master->bus_num = BCM63XX_SPI_BUS_NUM;
+ 	master->num_chipselect = BCM63XX_SPI_MAX_CS;
+ 	master->transfer_one_message = bcm63xx_spi_transfer_one;
+ 	master->mode_bits = MODEBITS;
+ 	master->bits_per_word_mask = SPI_BPW_MASK(8);
+-	master->auto_runtime_pm = true;
+ 	bs->msg_type_shift = bs->reg_offsets[SPI_MSG_TYPE_SHIFT];
+ 	bs->msg_ctl_width = bs->reg_offsets[SPI_MSG_CTL_WIDTH];
+ 	bs->tx_io = (u8 *)(bs->regs + bs->reg_offsets[SPI_MSG_DATA]);
+@@ -553,6 +565,12 @@ static int bcm63xx_spi_probe(struct plat
+ 	if (ret)
+ 		goto out_err;
+ 
++	ret = reset_control_reset(reset);
++	if (ret) {
++		dev_err(dev, "unable to reset device: %d\n", ret);
++		goto out_clk_disable;
++	}
++
+ 	bcm_spi_writeb(bs, SPI_INTR_CLEAR_ALL, SPI_INT_STATUS);
+ 
+ 	/* register and we are done */
+@@ -621,10 +639,18 @@ static const struct dev_pm_ops bcm63xx_s
+ 	SET_SYSTEM_SLEEP_PM_OPS(bcm63xx_spi_suspend, bcm63xx_spi_resume)
+ };
+ 
++static const struct of_device_id bcm63xx_spi_dt_match[] = {
++	{ .compatible = "brcm,bcm6348-spi", .data = bcm6348_spi_reg_offsets },
++	{ .compatible = "brcm,bcm6358-spi", .data = bcm6358_spi_reg_offsets },
++	{ },
++};
++MODULE_DEVICE_TABLE(of, bcm63xx_spi_dt_match);
++
+ static struct platform_driver bcm63xx_spi_driver = {
+ 	.driver = {
+ 		.name	= "bcm63xx-spi",
+ 		.pm	= &bcm63xx_spi_pm_ops,
++		.of_match_table = bcm63xx_spi_dt_match,
+ 	},
+ 	.id_table	= bcm63xx_spi_dev_match,
+ 	.probe		= bcm63xx_spi_probe,
+--- a/drivers/spi/spi-bcm63xx-hsspi.c
++++ b/drivers/spi/spi-bcm63xx-hsspi.c
+@@ -19,6 +19,8 @@
+ #include <linux/interrupt.h>
+ #include <linux/spi/spi.h>
+ #include <linux/mutex.h>
++#include <linux/of.h>
++#include <linux/reset.h>
+ 
+ #define HSSPI_GLOBAL_CTRL_REG			0x0
+ #define GLOBAL_CTRL_CS_POLARITY_SHIFT		0
+@@ -330,9 +332,10 @@ static int bcm63xx_hsspi_probe(struct pl
+ 	struct resource *res_mem;
+ 	void __iomem *regs;
+ 	struct device *dev = &pdev->dev;
+-	struct clk *clk;
++	struct clk *clk, *osc_clk;
+ 	int irq, ret;
+ 	u32 reg, rate;
++	struct reset_control *reset;
+ 
+ 	irq = platform_get_irq(pdev, 0);
+ 	if (irq < 0) {
+@@ -345,19 +348,37 @@ static int bcm63xx_hsspi_probe(struct pl
+ 	if (IS_ERR(regs))
+ 		return PTR_ERR(regs);
+ 
+-	clk = devm_clk_get(dev, "hsspi");
++	osc_clk = devm_clk_get(dev, "hsspi_osc");
++	if (IS_ERR(osc_clk))
++		return PTR_ERR(osc_clk);
++
++	rate = clk_get_rate(osc_clk);
++	if (!rate)
++		return -EINVAL;
+ 
++	clk = devm_clk_get(dev, "hsspi");
+ 	if (IS_ERR(clk))
+ 		return PTR_ERR(clk);
+ 
+-	rate = clk_get_rate(clk);
+-	if (!rate)
+-		return -EINVAL;
++	reset = devm_reset_control_get(dev, NULL);
++	if (IS_ERR(reset)) {
++		ret = PTR_ERR(reset);
++		if (ret != -EPROBE_DEFER)
++			dev_err(dev,
++				"failed to get reset controller: %d\n", ret);
++		return ret;
++	}
+ 
+ 	ret = clk_prepare_enable(clk);
+ 	if (ret)
+ 		return ret;
+ 
++	ret = reset_control_reset(reset);
++	if (ret) {
++		dev_err(dev, "unable to reset device: %d\n", ret);
++		goto out_disable_clk;
++	}
++
+ 	master = spi_alloc_master(&pdev->dev, sizeof(*bs));
+ 	if (!master) {
+ 		ret = -ENOMEM;
+@@ -374,6 +395,7 @@ static int bcm63xx_hsspi_probe(struct pl
+ 	mutex_init(&bs->bus_mutex);
+ 	init_completion(&bs->done);
+ 
++	master->dev.of_node = pdev->dev.of_node;
+ 	master->bus_num = HSSPI_BUS_NUM;
+ 	master->num_chipselect = 8;
+ 	master->setup = bcm63xx_hsspi_setup;
+@@ -381,7 +403,6 @@ static int bcm63xx_hsspi_probe(struct pl
+ 	master->mode_bits = SPI_CPOL | SPI_CPHA | SPI_CS_HIGH |
+ 			    SPI_RX_DUAL | SPI_TX_DUAL;
+ 	master->bits_per_word_mask = SPI_BPW_MASK(8);
+-	master->auto_runtime_pm = true;
+ 
+ 	platform_set_drvdata(pdev, master);
+ 
+@@ -408,6 +429,8 @@ static int bcm63xx_hsspi_probe(struct pl
+ 	if (ret)
+ 		goto out_put_master;
+ 
++	dev_info(dev, "at %pr (irq %d, rate %u)\n", res_mem, irq, bs->speed_hz);
++
+ 	return 0;
+ 
+ out_put_master:
+@@ -461,10 +484,17 @@ static int bcm63xx_hsspi_resume(struct d
+ static SIMPLE_DEV_PM_OPS(bcm63xx_hsspi_pm_ops, bcm63xx_hsspi_suspend,
+ 			 bcm63xx_hsspi_resume);
+ 
++static const struct of_device_id bcm63xx_hsspi_dt_match[] = {
++	{ .compatible = "brcm,bcm6328-hsspi", },
++	{},
++};
++MODULE_DEVICE_TABLE(of, bcm63xx_hsspi_dt_match);
++
+ static struct platform_driver bcm63xx_hsspi_driver = {
+ 	.driver = {
+ 		.name	= "bcm63xx-hsspi",
+ 		.pm	= &bcm63xx_hsspi_pm_ops,
++		.of_match_table = bcm63xx_hsspi_dt_match,
+ 	},
+ 	.probe		= bcm63xx_hsspi_probe,
+ 	.remove		= bcm63xx_hsspi_remove,

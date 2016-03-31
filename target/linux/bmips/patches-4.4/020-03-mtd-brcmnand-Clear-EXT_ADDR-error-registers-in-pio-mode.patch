@@ -1,0 +1,27 @@
+From 0401669797488feb055521cade69b1d0e81669db Mon Sep 17 00:00:00 2001
+From: Simon Arlott <simon@fire.lp0.eu>
+Date: Mon, 16 Nov 2015 22:05:39 +0000
+Subject: [PATCH] brcmnand: Clear EXT_ADDR error registers in PIO mode
+
+If an error occurs in flash above 4GB in PIO mode then the EXT_ADDR
+registers will be set to the location of the error and never cleared.
+
+Reset them to 0 before reading.
+
+Signed-off-by: Simon Arlott <simon@fire.lp0.eu>
+Signed-off-by: Brian Norris <computersforpeace@gmail.com>
+---
+ drivers/mtd/nand/brcmnand/brcmnand.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+--- a/drivers/mtd/nand/brcmnand/brcmnand.c
++++ b/drivers/mtd/nand/brcmnand/brcmnand.c
+@@ -1405,6 +1405,8 @@ static int brcmnand_read_by_pio(struct m
+ 	/* Clear error addresses */
+ 	brcmnand_write_reg(ctrl, BRCMNAND_UNCORR_ADDR, 0);
+ 	brcmnand_write_reg(ctrl, BRCMNAND_CORR_ADDR, 0);
++	brcmnand_write_reg(ctrl, BRCMNAND_UNCORR_EXT_ADDR, 0);
++	brcmnand_write_reg(ctrl, BRCMNAND_CORR_EXT_ADDR, 0);
+ 
+ 	brcmnand_write_reg(ctrl, BRCMNAND_CMD_EXT_ADDRESS,
+ 			(host->cs << 16) | ((addr >> 32) & 0xffff));

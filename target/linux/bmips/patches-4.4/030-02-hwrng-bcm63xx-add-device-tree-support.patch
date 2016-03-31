@@ -1,0 +1,38 @@
+From 7b651706712b9774e77d89654949a5b1926d73db Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=C3=81lvaro=20Fern=C3=A1ndez=20Rojas?= <noltari@gmail.com>
+Date: Sun, 17 Jan 2016 10:03:55 +0100
+Subject: [PATCH] hwrng: bcm63xx - add device tree support
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Adds device tree support for BCM6368, which seems to be the only BCM63xx with
+bcm63xx-rng support.
+
+Signed-off-by: Álvaro Fernández Rojas <noltari@gmail.com>
+Reviewed-by: Florian Fainelli <f.fainelli@gmail.com>
+Signed-off-by: Herbert Xu <herbert@gondor.apana.org.au>
+---
+ drivers/char/hw_random/bcm63xx-rng.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+--- a/drivers/char/hw_random/bcm63xx-rng.c
++++ b/drivers/char/hw_random/bcm63xx-rng.c
+@@ -130,10 +130,17 @@ static int bcm63xx_rng_probe(struct plat
+ 	return 0;
+ }
+ 
++static const struct of_device_id bcm63xx_rng_of_match[] = {
++	{ .compatible = "brcm,bcm6368-rng", },
++	{},
++};
++MODULE_DEVICE_TABLE(of, bcm63xx_rng_of_match);
++
+ static struct platform_driver bcm63xx_rng_driver = {
+ 	.probe		= bcm63xx_rng_probe,
+ 	.driver		= {
+ 		.name	= "bcm63xx-rng",
++		.of_match_table = bcm63xx_rng_of_match,
+ 	},
+ };
+ 

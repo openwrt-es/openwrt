@@ -1,0 +1,104 @@
+/dts-v1/;
+
+#include "bcm6368.dtsi"
+
+/ {
+	compatible = "comtrend,wap-5813n", "brcm,bcm6368";
+	model = "Comtrend WAP-5813n";
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x00000000 0x04000000>;
+	};
+
+	chosen {
+		bootargs = "earlycon";
+		stdout-path = "uart0:115200";
+	};
+
+	gpio-keys-polled {
+		compatible = "gpio-keys-polled";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		poll-interval = <20>;
+		debounce-interval = <60>;
+
+		wlan {
+			label = "wlan";
+			gpios = <&gpio1 0 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_WLAN>;
+		};
+		reset {
+			label = "reset";
+			gpios = <&gpio1 2 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RESTART>;
+		};
+		wps {
+			label = "wps";
+			gpios = <&gpio1 3 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_WPS_BUTTON>;
+		};
+	};
+
+	gpio-leds {
+		compatible = "gpio-leds";
+
+		inet_green {
+			label = "WAP-5813n:green:inet";
+			gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;
+		};
+		power_green {
+			label = "WAP-5813n:green:power";
+			gpios = <&gpio0 22 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+		wps_green {
+			label = "WAP-5813n:green:wps";
+			gpios = <&gpio0 23 GPIO_ACTIVE_LOW>;
+		};
+		power_red {
+			label = "WAP-5813n:red:power";
+			gpios = <&gpio0 24 GPIO_ACTIVE_HIGH>;
+		};
+		inet_red {
+			label = "WAP-5813n:red:inet";
+			gpios = <&gpio0 31 GPIO_ACTIVE_HIGH>;
+		};
+	};
+};
+
+&ehci0 {
+	status = "ok";
+};
+
+&ohci0 {
+	status = "ok";
+};
+
+&pflash {
+	status = "ok";
+
+	partitions {
+		cfe@0 {
+			label = "CFE";
+			reg = <0x000000 0x010000>;
+			read-only;
+		};
+		linux@10000 {
+			label = "linux";
+			reg = <0x010000 0x7e0000>;
+		};
+		nvram@7f0000 {
+			label = "nvram";
+			reg = <0x7f0000 0x010000>;
+		};
+	};
+};
+
+&uart0 {
+	status = "ok";
+};
+
+&usbh {
+	status = "ok";
+};

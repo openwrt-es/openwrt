@@ -1,0 +1,15 @@
+--- a/drivers/tty/serial/bcm63xx_uart.c
++++ b/drivers/tty/serial/bcm63xx_uart.c
+@@ -911,7 +911,12 @@ static void __exit bcm_uart_exit(void)
+ 	uart_unregister_driver(&bcm_uart_driver);
+ }
+ 
++#ifndef MODULE
++subsys_initcall(bcm_uart_init);
++#else
+ module_init(bcm_uart_init);
++#endif
++
+ module_exit(bcm_uart_exit);
+ 
+ MODULE_AUTHOR("Maxime Bizon <mbizon@freebox.fr>");
